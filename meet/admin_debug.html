@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lidan Meet — DEBUG</title>
+  <style>
+    body { font-family: monospace; background: #0b0f1a; color: #e8edf5; padding: 20px; }
+    h2 { color: #3b82f6; margin-bottom: 16px; }
+    .section { margin-bottom: 24px; padding: 16px; background: #161d2e; border: 1px solid #243047; border-radius: 10px; }
+    .section h3 { color: #06b6d4; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+    .log { font-size: 12px; line-height: 1.8; }
+    .ok   { color: #10b981; }
+    .err  { color: #ef4444; }
+    .warn { color: #f59e0b; }
+    .info { color: #6b7fa3; }
+    button {
+      padding: 8px 18px; background: #3b82f6; color: #fff;
+      border: none; border-radius: 6px; cursor: pointer;
+      font-family: monospace; font-size: 13px; margin-right: 8px; margin-bottom: 8px;
+    }
+    button:hover { background: #2563eb; }
+    button.danger { background: #ef4444; }
+    input {
+      padding: 8px 12px; background: #111827; border: 1px solid #243047;
+      border-radius: 6px; color: #e8edf5; font-family: monospace; font-size: 13px;
+      width: 300px; margin-right: 8px;
+    }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 11px; color: #6b7fa3; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<h2>🔧 Lidan Meet — Debug Console</h2>
+
+<!-- 1. JITSI SCRIPT -->
+<div class="section">
+  <h3>1. Jitsi External API Script</h3>
+  <div class="log" id="log-jitsi"></div>
+  <br>
+  <button onclick="testJitsiScript()">▶ Test Load Script</button>
+</div>
+
+<!-- 2. API SERVER -->
+<div class="section">
+  <h3>2. Admin Login API</h3>
+  <div style="margin-bottom:10px">
+    <input type="text" id="inp-user" placeholder="username" />
+    <input type="password" id="inp-pass" placeholder="password" />
+  </div>
+  <button onclick="testLogin()">▶ Test Login</button>
+  <div class="log" id="log-login"></div>
+</div>
+
+<!-- 3. ADMIN ROOM TOKEN -->
+<div class="section">
+  <h3>3. Admin Room Token (BASE_API)</h3>
+  <div style="margin-bottom:10px">
+    <input type="text" id="inp-room" placeholder="nama room (contoh: test-room-123)" />
+  </div>
+  <button onclick="testRoomToken()">▶ Test Get Token</button>
+  <div class="log" id="log-room"></div>
+  <pre id="pre-room"></pre>
+</div>
+
+<!-- 4. SIGNAL API -->
+<div class="section">
+  <h3>4. Signal API (polling)</h3>
+  <div style="margin-bottom:10px">
+    <input type="text" id="inp-signal-room" placeholder="nama room (sama dengan di atas)" />
+  </div>
+  <button onclick="testSignal()">▶ Test Signal Poll</button>
+  <div class="log" id="log-signal"></div>
+  <pre id="pre-signal"></pre>
+</div>
+
+<!-- 5. JITSI EMBED LIVE -->
+<div class="section">
+  <h3>5. Jitsi Embed Live Test</h3>
+  <div class="log" id="log-embed"></div>
+  <div id="jitsi-test-wrap" style="width:100%;height:400px;position:relative;margin-top:12px;background:#111827;border-radius:8px;overflow:hidden;display:none">
+    <div id="jitsi-test-container" style="width:100%;height:100%"></div>
+  </div>
+</div>
+
+<script>
+  /* ── CONFIG (sama persis dengan admin.html) ── */
+  const API_READ  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
+  const BASE_API  = 'https://lidan.co.id/api';
+  const AUTH_KEY  = 'admin';
+  const TBL_ADMIN = 'admins';
+  const JITSI_SCRIPT = 'https://8x8.vc/vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/external_api.js';
+
+  /* ── HELPERS ── */
+  function log(elId, msg, type = 'info') {
+    const el = document.getElementById(elId);
+    const ts = new Date().toLocaleTimeString('id-ID');
+    el.innerHTML += `<span class="${type}">[${ts}] ${msg}</span>\n`;
+  }
+  function clearLog(elId) {
+    document.getElementById(elId).innerHTML = '';
+  }
+
+  /* ════════════════════════════════
+     TEST 1: JITSI SCRIPT
+  ════════════════════════════════ */
+  function testJitsiScript() {
+    clearLog('log-jitsi');
+    log('log-jitsi', 'Mengecek apakah JitsiMeetExternalAPI sudah tersedia...', 'info');
+
+    if (typeof JitsiMeetExternalAPI !== 'undefined') {
+      log('log-jitsi', '✅ JitsiMeetExternalAPI SUDAH tersedia (sudah ter-load sebelumnya)', 'ok');
+      return;
+    }
+
+    log('log-jitsi', '⏳ Belum tersedia. Memuat script dari: ' + JITSI_SCRIPT, 'warn');
+    const s = document.createElement('script');
+    s.src = JITSI_SCRIPT;
+    s.onload = () => {
+      log('log-jitsi', '✅ Script berhasil dimuat!', 'ok');
+      log('log-jitsi', 'typeof JitsiMeetExternalAPI = ' + typeof JitsiMeetExternalAPI, 'ok');
+      log('log-jitsi', 'Siap untuk embed Jitsi.', 'ok');
+    };
+    s.onerror = (e) => {
+      log('log-jitsi', '❌ GAGAL memuat script! Periksa magic cookie atau koneksi internet.', 'err');
+      log('log-jitsi', 'Error: ' + JSON.stringify(e.type), 'err');
+    };
+    document.head.appendChild(s);
+    log('log-jitsi', 'Script ditambahkan ke DOM, menunggu load...', 'info');
+  }
+
+  /* ════════════════════════════════
+     TEST 2: LOGIN API
+  ════════════════════════════════ */
+  async function testLogin() {
+    clearLog('log-login');
+    const user = document.getElementById('inp-user').value.trim();
+    const pass = document.getElementById('inp-pass').value.trim();
+
+    if (!user || !pass) {
+      log('log-login', '⚠️ Isi username dan password terlebih dahulu.', 'warn'); return;
+    }
+
+    log('log-login', `Fetch ke: ${API_READ}?table=${TBL_ADMIN}&x_01_eq=${encodeURIComponent(user)}`, 'info');
+    log('log-login', `Header: X-Custom-Auth = "${AUTH_KEY}"`, 'info');
+
+    try {
+      const url = `${API_READ}?table=${TBL_ADMIN}&x_01_eq=${encodeURIComponent(user)}`;
+      const res = await fetch(url, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+
+      log('log-login', `HTTP Status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+
+      const data = await res.json();
+      log('log-login', 'Response JSON: ' + JSON.stringify(data).substring(0, 300), 'info');
+
+      if (!data.success)  { log('log-login', '❌ API mengembalikan success=false', 'err'); return; }
+      if (data.count === 0) { log('log-login', '❌ Username tidak ditemukan di tabel.', 'err'); return; }
+
+      const row = data.data[0];
+      log('log-login', `✅ User ditemukan. x_01="${row.x_01}", x_02="${row.x_02 ? '***' : '(kosong)'}"`, 'ok');
+
+      if ((row.x_02 || '').trim() !== pass) {
+        log('log-login', '❌ Password TIDAK cocok.', 'err');
+      } else {
+        log('log-login', '✅ Password cocok! Login akan berhasil.', 'ok');
+      }
+    } catch(e) {
+      log('log-login', '❌ FETCH ERROR: ' + e.message, 'err');
+      log('log-login', 'Kemungkinan: CORS error, network error, atau URL API salah.', 'warn');
+    }
+  }
+
+  /* ════════════════════════════════
+     TEST 3: ROOM TOKEN
+  ════════════════════════════════ */
+  async function testRoomToken() {
+    clearLog('log-room');
+    document.getElementById('pre-room').textContent = '';
+    const roomName = document.getElementById('inp-room').value.trim();
+
+    if (!roomName) {
+      log('log-room', '⚠️ Isi nama room terlebih dahulu.', 'warn'); return;
+    }
+
+    const url = `${BASE_API}/admin-room`;
+    const body = { roomName, displayName: 'debug-pengawas', userEmail: '' };
+    log('log-room', `POST ke: ${url}`, 'info');
+    log('log-room', `Body: ${JSON.stringify(body)}`, 'info');
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000),
+      });
+
+      log('log-room', `HTTP Status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+
+      const data = await res.json();
+      document.getElementById('pre-room').textContent = JSON.stringify(data, null, 2);
+
+      if (!data.success) {
+        log('log-room', '❌ success=false. Error: ' + (data.error || '-'), 'err'); return;
+      }
+      if (!data.token) {
+        log('log-room', '❌ Response tidak mengandung token!', 'err'); return;
+      }
+
+      log('log-room', '✅ Token berhasil didapat!', 'ok');
+      log('log-room', `domain: ${data.domain}`, 'ok');
+      log('log-room', `room:   ${data.room}`, 'ok');
+      log('log-room', `token:  ${String(data.token).substring(0, 60)}...`, 'ok');
+
+      // Simpan untuk test embed
+      window._debugRoomData = data;
+      log('log-room', '💡 Data disimpan. Bisa lanjut ke Test 5 (Embed).', 'info');
+
+      // Tampilkan tombol embed
+      document.getElementById('log-embed').innerHTML =
+        `<span class="ok">✅ Token siap. Klik tombol di bawah untuk embed Jitsi.</span>\n`;
+      document.getElementById('jitsi-test-wrap').style.display = '';
+
+      // Tambah tombol embed jika belum ada
+      if (!document.getElementById('btn-do-embed')) {
+        const btn = document.createElement('button');
+        btn.id = 'btn-do-embed';
+        btn.textContent = '▶ Embed Jitsi Sekarang';
+        btn.onclick = testEmbed;
+        document.querySelector('#jitsi-test-wrap').before(btn);
+      }
+
+    } catch(e) {
+      if (e.name === 'TimeoutError') {
+        log('log-room', '❌ TIMEOUT (>8 detik). Server tidak merespons.', 'err');
+      } else {
+        log('log-room', '❌ FETCH ERROR: ' + e.message, 'err');
+      }
+    }
+  }
+
+  /* ════════════════════════════════
+     TEST 4: SIGNAL POLL
+  ════════════════════════════════ */
+  async function testSignal() {
+    clearLog('log-signal');
+    document.getElementById('pre-signal').textContent = '';
+    const room = document.getElementById('inp-signal-room').value.trim();
+
+    if (!room) {
+      log('log-signal', '⚠️ Isi nama room terlebih dahulu.', 'warn'); return;
+    }
+
+    const url = `${BASE_API}/signal?room=${encodeURIComponent(room)}&role=admin`;
+    log('log-signal', `GET: ${url}`, 'info');
+
+    try {
+      const res  = await fetch(url);
+      log('log-signal', `HTTP Status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+      const data = await res.json();
+      document.getElementById('pre-signal').textContent = JSON.stringify(data, null, 2);
+
+      if (data.success) {
+        log('log-signal', '✅ Signal API merespons dengan success=true', 'ok');
+        log('log-signal', `queue: ${(data.queue||[]).length} item`, 'info');
+        log('log-signal', `participantCount: ${data.participantCount ?? '-'}`, 'info');
+      } else {
+        log('log-signal', '⚠️ success=false', 'warn');
+      }
+    } catch(e) {
+      log('log-signal', '❌ FETCH ERROR: ' + e.message, 'err');
+    }
+  }
+
+  /* ════════════════════════════════
+     TEST 5: JITSI EMBED
+  ════════════════════════════════ */
+  function testEmbed() {
+    clearLog('log-embed');
+    const roomData = window._debugRoomData;
+
+    if (!roomData) {
+      log('log-embed', '❌ Belum ada token. Jalankan Test 3 dulu.', 'err'); return;
+    }
+
+    if (typeof JitsiMeetExternalAPI === 'undefined') {
+      log('log-embed', '❌ JitsiMeetExternalAPI belum ter-load. Jalankan Test 1 dulu.', 'err'); return;
+    }
+
+    const container = document.getElementById('jitsi-test-container');
+    container.innerHTML = '';
+    log('log-embed', `Mencoba embed ke domain: ${roomData.domain}`, 'info');
+    log('log-embed', `Room: ${roomData.room}`, 'info');
+
+    const cleanToken = (roomData.token || '').replace(/^"|"$/g,'').trim();
+    log('log-embed', `Token (50 char): ${cleanToken.substring(0,50)}...`, 'info');
+
+    try {
+      const api = new JitsiMeetExternalAPI(roomData.domain, {
+        roomName: roomData.room,
+        width: '100%', height: '100%',
+        parentNode: container,
+        jwt: cleanToken,
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false,
+          enableWelcomePage: false,
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          APP_NAME: 'Lidan Meet Debug',
+        },
+      });
+
+      log('log-embed', '✅ JitsiMeetExternalAPI instance dibuat.', 'ok');
+
+      api.addEventListener('videoConferenceJoined', () => {
+        log('log-embed', '🎉 EVENT: videoConferenceJoined — Berhasil masuk room!', 'ok');
+      });
+      api.addEventListener('videoConferenceLeft', () => {
+        log('log-embed', '📴 EVENT: videoConferenceLeft', 'warn');
+      });
+      api.addEventListener('errorOccurred', (e) => {
+        log('log-embed', '❌ EVENT: errorOccurred — ' + JSON.stringify(e), 'err');
+      });
+
+      window._debugJitsiApi = api;
+      log('log-embed', 'Menunggu iframe load...', 'info');
+
+    } catch(e) {
+      log('log-embed', '❌ ERROR saat membuat JitsiMeetExternalAPI: ' + e.message, 'err');
+      log('log-embed', e.stack || '', 'err');
+    }
+  }
+</script>
+</body>
+</html>

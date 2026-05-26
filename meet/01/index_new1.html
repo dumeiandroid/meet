@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lidan Meet — Ruang Ujian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --bg2: #111827;
+      --surface: #161d2e;
+      --surface2: #1e2a40;
+      --border: #243047;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59,130,246,0.25);
+      --accent2: #06b6d4;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --text: #e8edf5;
+      --text-muted: #6b7fa3;
+      --text-dim: #3d5170;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --video-strip-h: 140px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       LOBBY SCREEN
+    ══════════════════════════════════════════ */
+    #screen-lobby {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 36px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,15,26,0.85);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 800;
+      color: var(--text); letter-spacing: -0.5px;
+    }
+    .logo-text span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .lobby-body {
+      flex: 1; overflow-y: auto;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .lobby-wrap {
+      width: 100%; max-width: 460px;
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(20px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 12px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 5vw, 50px);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -1.5px; margin-bottom: 10px;
+    }
+    .hero-title .hl {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      color: var(--text-muted); font-size: 15px;
+      line-height: 1.7; margin-bottom: 36px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    }
+
+    /* Hash-room notice */
+    .hash-room-notice {
+      display: none;
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 10px; padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 13px; color: var(--accent);
+    }
+    .hash-room-notice.show { display: block; }
+    .hash-room-label {
+      font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 3px;
+    }
+    .hash-room-name {
+      font-family: var(--font-display);
+      font-weight: 700; font-size: 15px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 8px;
+    }
+    input[type="text"], input[type="email"] {
+      width: 100%; padding: 13px 16px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-body); font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    input::placeholder { color: var(--text-dim); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; width: 100%; padding: 14px 20px;
+      border: none; border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 15px;
+      font-weight: 500; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn-spinner { display: none; width: 16px; height: 16px; }
+    .btn-spinner.show { display: block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      display: none; margin-top: 16px;
+      padding: 12px 16px; border-radius: 10px;
+      font-size: 14px; background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: var(--danger);
+    }
+    .alert.show { display: block; }
+
+    /* ══════════════════════════════════════════
+       MEET SCREEN (Split Layout)
+    ══════════════════════════════════════════ */
+    #screen-meet {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      position: relative; z-index: 1;
+    }
+    #screen-meet.active { display: flex; }
+
+    /* TOP BAR */
+    .meet-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px;
+      background: rgba(11,15,26,0.95);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0; gap: 12px;
+    }
+    .meet-topbar-left { display: flex; align-items: center; gap: 10px; }
+    .meet-logo-sm {
+      font-family: var(--font-display);
+      font-size: 15px; font-weight: 800; letter-spacing: -0.5px;
+    }
+    .meet-logo-sm span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .meet-room-badge {
+      font-size: 11px; color: var(--text-muted);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 10px;
+      max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .meet-topbar-right { display: flex; align-items: center; gap: 10px; }
+    .meet-timer {
+      font-family: var(--font-display);
+      font-size: 13px; color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    /* CONTENT AREA — iframe atas, video strip bawah */
+    .meet-content {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden; position: relative;
+    }
+
+    /* Placeholder soal (sampai soal diintegrasikan) */
+    #exam-area {
+      flex: 1; overflow: hidden;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    /* Jitsi berjalan normal - ukuran penuh, visible, WebRTC aktif */
+    #jitsi-container {
+      width: 100%; height: 100%;
+    }
+    /* Overlay penutup - menutupi Jitsi agar peserta tidak lihat video orang lain */
+    #exam-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      background: var(--bg2);
+      display: none;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; padding: 40px 24px;
+      text-align: center;
+    }
+    #exam-overlay.show { display: flex; }
+    .exam-icon { font-size: 56px; opacity: 0.3; }
+    .exam-connected-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 12px; color: var(--success);
+    }
+    .exam-connected-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success);
+      animation: examBlink 2s infinite;
+    }
+    @keyframes examBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    .exam-room-info {
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 700;
+      color: var(--text-muted); letter-spacing: -0.3px;
+    }
+    .exam-room-sub {
+      font-size: 13px; color: var(--text-dim);
+      max-width: 300px; line-height: 1.6;
+    }
+    #meet-loading {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; background: var(--bg);
+      transition: opacity 0.4s;
+    }
+    #meet-loading.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* VIDEO STRIP — bawah, hanya self-video */
+    .video-strip {
+      height: var(--video-strip-h);
+      background: rgba(11,15,26,0.95);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      gap: 12px; padding: 10px 16px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .self-video-box {
+      position: relative;
+      width: calc(var(--video-strip-h) * 1.4);
+      height: calc(var(--video-strip-h) - 20px);
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    #self-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror */
+    }
+    .self-video-label {
+      position: absolute; bottom: 6px; left: 8px;
+      font-size: 10px; font-weight: 500;
+      background: rgba(0,0,0,0.6);
+      color: var(--text); padding: 2px 7px;
+      border-radius: 4px; letter-spacing: 0.3px;
+    }
+    .cam-off-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: var(--surface2);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 6px;
+    }
+    .cam-off-overlay.show { display: flex; }
+    .cam-off-icon { font-size: 28px; opacity: 0.5; }
+
+    /* STATUS + CONTROLS */
+    .strip-controls {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; gap: 10px;
+    }
+
+    /* Admin Status Badge */
+    .admin-status-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .admin-status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.3s;
+    }
+    .admin-status-dot.available { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .admin-status-dot.busy      { background: var(--danger); }
+    .admin-status-dot.broadcast { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+    .admin-status-dot.idle      { background: var(--text-dim); }
+
+    /* Controls row */
+    .strip-btns { display: flex; align-items: center; gap: 8px; }
+
+    .ctrl-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      font-family: var(--font-body); font-size: 13px; font-weight: 500;
+      cursor: pointer; border: 1px solid;
+      transition: all 0.2s;
+    }
+    .ctrl-btn-raise {
+      background: rgba(245,158,11,0.12);
+      border-color: rgba(245,158,11,0.3);
+      color: var(--warn);
+    }
+    .ctrl-btn-raise:hover {
+      background: rgba(245,158,11,0.2);
+      border-color: var(--warn);
+    }
+    .ctrl-btn-raise.in-queue {
+      background: rgba(245,158,11,0.2);
+      border-color: var(--warn);
+      animation: raiseGlow 2s infinite;
+    }
+    .ctrl-btn-raise.cancel {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--danger);
+    }
+    @keyframes raiseGlow {
+      0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50%      { box-shadow: 0 0 0 4px rgba(245,158,11,0.2); }
+    }
+
+    .ctrl-btn-hangup {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--danger);
+    }
+    .ctrl-btn-hangup:hover {
+      background: var(--danger); color: #fff;
+      border-color: var(--danger);
+    }
+
+    .ctrl-btn-mic {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    .ctrl-btn-mic.active {
+      background: rgba(16,185,129,0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* Queue info */
+    .queue-info {
+      display: none;
+      font-size: 12px; color: var(--text-muted);
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 6px; padding: 5px 10px;
+    }
+    .queue-info.show { display: block; }
+
+    /* Notification toast */
+    #toast-container {
+      position: fixed; top: 70px; right: 20px;
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; max-width: 280px;
+      animation: toastIn 0.3s ease both;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.warn    { border-left: 3px solid var(--warn); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+    @keyframes toastIn {
+      from { opacity:0; transform: translateX(20px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    /* Notification overlay (Admin bicara ke semua) */
+    #broadcast-banner {
+      display: none;
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      z-index: 9998;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.4);
+      border-radius: 10px; padding: 10px 20px;
+      font-size: 13px; color: var(--warn);
+      text-align: center;
+      animation: fadeUp 0.3s ease;
+    }
+    #broadcast-banner.show { display: block; }
+
+    /* Private call indicator */
+    #private-call-banner {
+      display: none;
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      z-index: 9998;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 10px; padding: 10px 20px;
+      font-size: 13px; color: var(--accent);
+      text-align: center;
+    }
+    #private-call-banner.show { display: block; }
+
+    /* ══════════════════════════════════════════
+       MEET SCREEN — Clean White + Floating Video
+    ══════════════════════════════════════════ */
+    #screen-meet {
+      display: none;
+      height: 100vh; width: 100vw;
+      position: fixed; inset: 0; z-index: 1;
+      background: #ffffff !important;
+    }
+    #screen-meet.active { display: block; }
+
+    /* Override body background agar tidak tembus */
+    body.in-meet { background: #ffffff !important; }
+    body.in-meet::before { display: none !important; }
+
+    /* Jitsi tersembunyi — WebRTC tetap aktif */
+    #jitsi-hidden-wrap {
+      position: fixed !important;
+      width: 1px !important; height: 1px !important;
+      overflow: hidden !important; opacity: 0 !important;
+      pointer-events: none !important;
+      top: -9999px !important; left: -9999px !important;
+    }
+    #jitsi-container { width: 640px; height: 480px; }
+
+    /* Area soal putih penuh */
+    #exam-content-area {
+      position: absolute; inset: 0;
+      background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #exam-iframe {
+      width: 100%; height: 100%;
+      border: none; display: none;
+    }
+    .exam-placeholder {
+      text-align: center; color: #94a3b8;
+      font-family: var(--font-body);
+    }
+    .exam-placeholder-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+    .exam-placeholder-text { font-size: 14px; }
+
+    /* Loading overlay putih */
+    #meet-loading {
+      position: fixed; inset: 0; z-index: 2000;
+      background: #ffffff;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.4s;
+    }
+    #meet-loading.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-text { font-size: 13px; color: #64748b; }
+
+    /* ── FLOATING VIDEO WIDGET ── */
+    #float-widget {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      z-index: 9000;
+      display: none;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      filter: drop-shadow(0 8px 32px rgba(0,0,0,0.22));
+    }
+    #float-widget.active { display: flex; }
+
+    #float-video-box {
+      position: relative;
+      width: 160px; height: 90px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0b0f1a;
+      border: 2px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+    }
+    #self-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .cam-off-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: #1e2a40;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 4px;
+    }
+    .cam-off-overlay.show { display: flex; }
+    .cam-off-icon { font-size: 22px; opacity: 0.5; }
+
+    #float-video-overlay {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      padding: 6px 8px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .fv-top { display: flex; justify-content: flex-end; }
+    .fv-admin-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #3d5170; transition: background 0.3s;
+    }
+    .fv-admin-dot.available { background: #10b981; box-shadow: 0 0 5px #10b981; }
+    .fv-admin-dot.busy      { background: #ef4444; }
+    .fv-admin-dot.broadcast { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+    .fv-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+    .fv-timer {
+      font-family: var(--font-display);
+      font-size: 10px; color: rgba(255,255,255,0.7);
+      letter-spacing: 0.8px;
+      background: rgba(0,0,0,0.45);
+      padding: 1px 5px; border-radius: 3px;
+    }
+    .fv-hint { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+    #float-room-tag {
+      font-size: 10px; color: #64748b;
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 5px; padding: 2px 8px;
+      max-width: 160px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      text-align: center;
+    }
+
+    /* ── POPUP KONTROL ── */
+    #ctrl-popup {
+      position: fixed;
+      bottom: 130px; right: 20px;
+      z-index: 9001;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      width: 220px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+      animation: popupIn 0.18s ease both;
+    }
+    #ctrl-popup.open { display: flex; }
+    @keyframes popupIn {
+      from { opacity:0; transform: scale(0.92) translateY(8px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+    .popup-section-label {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #94a3b8; padding: 0 4px;
+    }
+    #popup-admin-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 8px; background: #f8fafc;
+      border-radius: 8px; font-size: 12px; color: #475569;
+    }
+    #popup-admin-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #cbd5e1; flex-shrink: 0; transition: background 0.3s;
+    }
+    #popup-admin-dot.available { background: #10b981; box-shadow: 0 0 4px #10b981; }
+    #popup-admin-dot.busy      { background: #ef4444; }
+    #popup-admin-dot.broadcast { background: #f59e0b; box-shadow: 0 0 4px #f59e0b; }
+    #popup-admin-dot.idle      { background: #cbd5e1; }
+    #popup-queue-info {
+      display: none; font-size: 11px; color: #92400e;
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 6px; padding: 5px 8px;
+    }
+    #popup-queue-info.show { display: block; }
+    .pop-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 9px 12px;
+      border-radius: 9px; border: 1px solid;
+      font-family: var(--font-body); font-size: 13px;
+      font-weight: 500; cursor: pointer; text-align: left;
+      transition: all 0.15s;
+    }
+    .pop-btn-raise { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+    .pop-btn-raise:hover { background:#fef3c7; }
+    .pop-btn-raise.in-queue { background:#fef3c7; border-color:#f59e0b; color:#78350f; animation: raiseGlow 2s infinite; }
+    .pop-btn-raise.cancel { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+    @keyframes raiseGlow {
+      0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50%      { box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
+    }
+    .pop-btn-mic { background:#f8fafc; border-color:#e2e8f0; color:#475569; }
+    .pop-btn-mic:hover { background:#f1f5f9; }
+    .pop-btn-mic.active { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+    .pop-btn-leave { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
+    .pop-btn-leave:hover { background:#fee2e2; }
+
+    /* ── RAISE HAND SHORTCUT ── */
+    #float-raise-btn {
+      position: fixed;
+      bottom: 20px; right: 192px;
+      z-index: 9000;
+      display: none;
+      align-items: center; gap: 7px;
+      padding: 9px 14px;
+      background: #fffbeb; border: 1.5px solid #fde68a;
+      border-radius: 10px;
+      font-family: var(--font-body); font-size: 13px;
+      font-weight: 600; color: #92400e;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      transition: all 0.15s; white-space: nowrap;
+    }
+    #float-raise-btn:hover { background:#fef3c7; transform: translateY(-1px); }
+    #float-raise-btn.active { display: flex; }
+    #float-raise-btn.in-queue { background:#fef3c7; border-color:#f59e0b; color:#78350f; animation: raiseGlow 2s infinite; }
+    #float-raise-btn.cancel { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+
+    /* Toast */
+    #toast-container {
+      position: fixed; bottom: 130px; right: 20px;
+      z-index: 9999; display: flex; flex-direction: column;
+      gap: 8px; align-items: flex-end;
+    }
+    .toast {
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; max-width: 260px; color: #e2e8f0;
+      animation: toastIn 0.3s ease both;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .toast.success { border-left: 3px solid #10b981; }
+    .toast.warn    { border-left: 3px solid #f59e0b; }
+    .toast.info    { border-left: 3px solid #3b82f6; }
+    @keyframes toastIn {
+      from { opacity:0; transform: translateX(20px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    /* Banners */
+    #broadcast-banner {
+      display: none; position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 9998; background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 10px; padding: 10px 20px;
+      font-size: 13px; color: #92400e; text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    #broadcast-banner.show { display: block; }
+    #private-call-banner {
+      display: none; position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 9998; background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 10px; padding: 10px 20px;
+      font-size: 13px; color: #1d4ed8; text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    #private-call-banner.show { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     LOBBY SCREEN
+══════════════════════════════════════════════════ -->
+<div id="screen-lobby">
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-icon">🎓</div>
+      <div class="logo-text">Lidan<span>Meet</span></div>
+    </a>
+    <div style="font-size:12px;color:var(--text-muted)">Ruang Ujian Online</div>
+  </header>
+
+  <div class="lobby-body">
+    <div class="lobby-wrap">
+      <div class="hero-badge">📋 Peserta Ujian</div>
+      <h1 class="hero-title">Masuk ke<br/><span class="hl">Ruang Ujian</span></h1>
+      <p class="hero-sub">Masukkan nama dan kode room ujian untuk bergabung. Kamera Anda akan aktif selama ujian berlangsung.</p>
+
+      <div class="card">
+        <!-- Hash-room notice (jika ada #hash di URL) -->
+        <div class="hash-room-notice" id="hash-notice">
+          <div class="hash-room-label">Room ujian telah ditentukan</div>
+          <div class="hash-room-name" id="hash-room-display">—</div>
+        </div>
+
+        <div class="form-group" id="room-input-group">
+          <label for="inp-room">Kode / Link Room</label>
+          <input type="text" id="inp-room" placeholder="misal: ujian-matematika atau link lengkap" />
+        </div>
+
+        <div class="form-group">
+          <label for="inp-name">Nama Lengkap</label>
+          <input type="text" id="inp-name" placeholder="Nama Anda akan terlihat pengawas" />
+        </div>
+
+        <div class="form-group">
+          <label for="inp-email">Email (opsional)</label>
+          <input type="email" id="inp-email" placeholder="email@contoh.com" />
+        </div>
+
+        <button class="btn btn-primary" id="btn-join" onclick="handleJoin()">
+          <svg class="btn-spinner" id="join-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          Masuk Ruang Ujian
+        </button>
+
+        <div class="alert" id="alert-msg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MEET SCREEN — Clean White
+══════════════════════════════════════════════════ -->
+<div id="screen-meet">
+  <!-- Jitsi tersembunyi, WebRTC tetap jalan -->
+  <div id="jitsi-hidden-wrap">
+    <div id="jitsi-container"></div>
+  </div>
+
+  <!-- Loading (putih) -->
+  <div id="meet-loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Menghubungkan ke ruang ujian…</div>
+  </div>
+
+  <!-- Area soal -->
+  <div id="exam-content-area">
+    <iframe id="exam-iframe" src="" allow="fullscreen"></iframe>
+    <div class="exam-placeholder" id="exam-placeholder">
+      <div class="exam-placeholder-icon">📝</div>
+      <div class="exam-placeholder-text">Area soal ujian<br><small style="font-size:11px;opacity:0.7">Soal akan tampil di sini</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tombol Tanya Pengawas shortcut -->
+<button id="float-raise-btn" onclick="handleRaiseHand()">🖐️ Tanya Pengawas</button>
+
+<!-- Floating video pojok kanan bawah -->
+<div id="float-widget">
+  <div id="float-video-box" onclick="toggleCtrlPopup()" title="Ketuk untuk kontrol">
+    <video id="self-video" autoplay playsinline muted></video>
+    <div class="cam-off-overlay" id="cam-off-overlay">
+      <div class="cam-off-icon">📷</div>
+    </div>
+    <div id="float-video-overlay">
+      <div class="fv-top"><div class="fv-admin-dot" id="fv-admin-dot"></div></div>
+      <div class="fv-bottom">
+        <span class="fv-timer" id="meet-timer">00:00</span>
+        <span class="fv-hint">···</span>
+      </div>
+    </div>
+  </div>
+  <div id="float-room-tag">—</div>
+</div>
+
+<!-- Popup kontrol -->
+<div id="ctrl-popup">
+  <div class="popup-section-label">Status Pengawas</div>
+  <div id="popup-admin-row">
+    <div id="popup-admin-dot" class="idle"></div>
+    <span id="admin-status-text">Menghubungkan…</span>
+  </div>
+  <div id="popup-queue-info"></div>
+  <div class="popup-section-label" style="margin-top:6px">Kontrol</div>
+  <button class="pop-btn pop-btn-mic" id="btn-mic" onclick="toggleMic()">🔇 Mic Mati</button>
+  <button class="pop-btn pop-btn-raise" id="btn-raise" onclick="handleRaiseHand();toggleCtrlPopup()">🖐️ Tanya Pengawas</button>
+  <div class="popup-section-label" style="margin-top:4px">Sesi</div>
+  <button class="pop-btn pop-btn-leave" onclick="handleLeave()">✕ Keluar dari Ruang Ujian</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     NOTIFICATIONS
+══════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+<div id="broadcast-banner">📢 Pengawas sedang berbicara kepada semua peserta</div>
+<div id="private-call-banner">📞 Pengawas sedang menghubungi Anda secara privat</div>
+
+<script src="https://8x8.vc/vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/external_api.js" async></script>
+
+<script>
+  /* ══════════════════════════════════════════════════
+     CONFIG
+  ══════════════════════════════════════════════════ */
+  const BASE_API = 'https://lidan.co.id/api';
+  const API_READ  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
+  const AUTH_KEY  = 'admin';
+  const SIGNAL_POLL_MS = 2500;
+
+  /* ══════════════════════════════════════════════════
+     STATE
+  ══════════════════════════════════════════════════ */
+  let jitsiAPI      = null;
+  let selfStream    = null;
+  let micEnabled    = false; // mute by default
+  let roomData      = null;
+  let myName        = '';
+  let myId          = null;   // will use displayName as ID
+  let timerInterval = null;
+  let meetStart     = null;
+  let pollInterval  = null;
+  let handRaised    = false;
+  let queuePos      = null;
+  let adminStatus   = 'idle'; // available | busy | broadcast | idle
+
+  /* ══════════════════════════════════════════════════
+     BOOT — cek hash URL
+  ══════════════════════════════════════════════════ */
+  window.addEventListener('load', () => {
+    const hash = decodeURIComponent(window.location.hash.replace('#', '').trim());
+    if (hash && hash.length > 3) {
+      document.getElementById('hash-notice').classList.add('show');
+      document.getElementById('hash-room-display').textContent = hash;
+      document.getElementById('room-input-group').style.display = 'none';
+      document.getElementById('inp-room').value = hash;
+    }
+  });
+
+  /* ══════════════════════════════════════════════════
+     JOIN
+  ══════════════════════════════════════════════════ */
+  async function handleJoin() {
+    const roomInput   = document.getElementById('inp-room').value.trim();
+    const displayName = document.getElementById('inp-name').value.trim();
+    const email       = document.getElementById('inp-email').value.trim();
+
+    if (!roomInput)   return showAlert('Kode room wajib diisi.');
+    if (!displayName) return showAlert('Nama lengkap wajib diisi.');
+
+    setLoading(true);
+    hideAlert();
+
+    try {
+      const res = await fetch(`${BASE_API}/join-room`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomName: roomInput, displayName, userEmail: email }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await res.json();
+      if (!data.success || !data.token) {
+        setLoading(false);
+        return showAlert(data.error || 'Gagal mendapatkan token.');
+      }
+      roomData = data;
+      myName   = displayName;
+    } catch (e) {
+      setLoading(false);
+      return showAlert('Tidak dapat terhubung ke server.');
+    }
+
+    await startSelfCamera();
+    startMeet();
+    setLoading(false);
+  }
+
+  /* ══════════════════════════════════════════════════
+     SELF CAMERA
+  ══════════════════════════════════════════════════ */
+  async function startSelfCamera() {
+    try {
+      selfStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const vid = document.getElementById('self-video');
+      vid.srcObject = selfStream;
+      document.getElementById('cam-off-overlay').classList.remove('show');
+      // Mic muted by default
+      selfStream.getAudioTracks().forEach(t => t.enabled = false);
+    } catch (e) {
+      document.getElementById('cam-off-overlay').classList.add('show');
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+     START MEET
+  ══════════════════════════════════════════════════ */
+  function startMeet() {
+    document.getElementById('screen-lobby').style.display = 'none';
+    document.getElementById('screen-meet').classList.add('active');
+    document.body.classList.add('in-meet');
+    document.getElementById('float-room-tag').textContent = roomData.room.split('/').pop();
+    window.location.hash = encodeURIComponent(roomData.room);
+
+    meetStart = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+
+    embedJitsi();
+    startSignalPoll();
+  }
+
+  /* ══════════════════════════════════════════════════
+     JITSI EMBED
+  ══════════════════════════════════════════════════ */
+  function embedJitsi() {
+    const container = document.getElementById('jitsi-container');
+    const loading   = document.getElementById('meet-loading');
+
+    const tryEmbed = () => {
+      if (typeof JitsiMeetExternalAPI === 'undefined') {
+        setTimeout(tryEmbed, 400); return;
+      }
+
+      const cleanToken = (roomData.token || '').replace(/^"|"$/g, '').trim();
+
+      const options = {
+        roomName: roomData.room,
+        width: '100%', height: '100%',
+        parentNode: container,
+        jwt: cleanToken,
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false,
+          enableWelcomePage: false,
+          defaultRemoteDisplayName: 'Peserta',
+          disableModeratorIndicator: true,
+          toolbarButtons: [],
+          filmstrip: { enabled: false },
+          disableTileView: true,
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_BRAND_WATERMARK: false,
+          SHOW_POWERED_BY: false,
+          TOOLBAR_ALWAYS_VISIBLE: false,
+          DEFAULT_BACKGROUND: '#0b0f1a',
+          APP_NAME: 'Lidan Meet',
+          DEFAULT_REMOTE_DISPLAY_NAME: 'Peserta',
+          FILM_STRIP_MAX_HEIGHT: 0,
+        },
+      };
+
+      if (jitsiAPI) { try { jitsiAPI.dispose(); } catch {} }
+      container.querySelectorAll('iframe').forEach(el => el.remove());
+
+      jitsiAPI = new JitsiMeetExternalAPI(roomData.domain, options);
+
+      jitsiAPI.addEventListener('videoConferenceJoined', () => {
+        loading.classList.add('hidden');
+        document.getElementById('float-widget').classList.add('active');
+        document.getElementById('float-raise-btn').classList.add('active');
+        jitsiAPI.executeCommand('toggleAudio');
+      });
+
+      jitsiAPI.addEventListener('videoConferenceLeft', () => {
+        handleLeave();
+      });
+
+      setTimeout(() => {
+        loading.classList.add('hidden');
+        document.getElementById('float-widget').classList.add('active');
+        document.getElementById('float-raise-btn').classList.add('active');
+      }, 6000);
+    };
+
+    tryEmbed();
+  }
+
+  /* ══════════════════════════════════════════════════
+     MIC TOGGLE
+  ══════════════════════════════════════════════════ */
+  function toggleMic() {
+    if (!jitsiAPI) return;
+    micEnabled = !micEnabled;
+    jitsiAPI.executeCommand('toggleAudio');
+
+    if (selfStream) {
+      selfStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+    }
+
+    const btn = document.getElementById('btn-mic');
+    if (micEnabled) {
+      btn.innerHTML = '🎙️ Mic Hidup';
+      btn.classList.add('active');
+    } else {
+      btn.innerHTML = '🔇 Mic Mati';
+      btn.classList.remove('active');
+    }
+  }
+
+  function toggleCtrlPopup() {
+    document.getElementById('ctrl-popup').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    const popup = document.getElementById('ctrl-popup');
+    const box   = document.getElementById('float-video-box');
+    if (popup && box && !popup.contains(e.target) && !box.contains(e.target)) {
+      popup.classList.remove('open');
+    }
+  });
+
+  /* ══════════════════════════════════════════════════
+     RAISE HAND (tanya pengawas)
+  ══════════════════════════════════════════════════ */
+  async function handleRaiseHand() {
+    if (!roomData) return;
+    const btn = document.getElementById('btn-raise');
+
+    if (handRaised) {
+      // Cancel
+      handRaised = false;
+      btn.classList.remove('in-queue', 'cancel');
+      btn.innerHTML = '🖐️ Tanya Pengawas';
+      const frb = document.getElementById('float-raise-btn');
+      if(frb){frb.classList.remove('in-queue','cancel'); frb.innerHTML='🖐️ Tanya Pengawas';}
+      const qi = document.getElementById('popup-queue-info'); if(qi) qi.classList.remove('show');
+      await signalSend('cancel-hand', { name: myName });
+      showToast('Pertanyaan dibatalkan.', 'info');
+      return;
+    }
+
+    // Check admin status
+    if (adminStatus === 'idle') {
+      showToast('Pengawas sedang tidak aktif. Coba lagi nanti.', 'warn');
+      return;
+    }
+
+    handRaised = true;
+    btn.classList.add('in-queue');
+    btn.innerHTML = '⏳ Menunggu… (tap untuk batal)';
+    const frb2 = document.getElementById('float-raise-btn');
+    if(frb2){frb2.classList.add('in-queue'); frb2.innerHTML='⏳ Menunggu pengawas…';}
+
+    const res = await signalSend('raise-hand', { name: myName });
+    if (res && res.queuePos !== undefined) {
+      if (res.queuePos === 0 && adminStatus === 'available') {
+        showToast('Pengawas siap! Mic Anda akan dibuka.', 'success');
+        btn.innerHTML = '🗣️ Sedang Bicara…';
+        btn.classList.remove('in-queue');
+      } else {
+        queuePos = res.queuePos;
+        updateQueueDisplay(queuePos);
+        btn.classList.add('cancel');
+        btn.innerHTML = `⏳ Antrian #${queuePos + 1} — tap untuk batal`;
+      }
+    }
+  }
+
+  function updateQueueDisplay(pos) {
+    const wait = (pos + 1) * 2;
+    const msg = `Antrian #${pos + 1} — estimasi ±${wait} mnt`;
+    const el = document.getElementById('popup-queue-info');
+    if(el){el.textContent = msg; el.classList.add('show');}
+    const frb3 = document.getElementById('float-raise-btn');
+    if(frb3){frb3.classList.add('cancel'); frb3.innerHTML=`⏳ Antrian #${pos+1} — tap batal`;}
+  }
+
+  /* ══════════════════════════════════════════════════
+     SIGNAL — send & poll
+  ══════════════════════════════════════════════════ */
+  async function signalSend(type, payload = {}) {
+    try {
+      const res = await fetch(`${BASE_API}/signal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          room: roomData?.room,
+          sender: myName,
+          ...payload,
+        }),
+      });
+      return await res.json();
+    } catch { return null; }
+  }
+
+  function startSignalPoll() {
+    pollInterval = setInterval(pollSignal, SIGNAL_POLL_MS);
+    pollSignal(); // immediate
+  }
+
+  async function pollSignal() {
+    if (!roomData) return;
+    try {
+      const res = await fetch(
+        `${BASE_API}/signal?room=${encodeURIComponent(roomData.room)}&participant=${encodeURIComponent(myName)}`
+      );
+      const data = await res.json();
+      if (!data.success) return;
+      processSignal(data);
+    } catch {}
+  }
+
+  function processSignal(data) {
+    // Admin status update
+    if (data.adminStatus !== undefined) {
+      const prev = adminStatus;
+      adminStatus = data.adminStatus;
+      updateAdminStatusUI(adminStatus, prev);
+    }
+
+    // Queue position update for this participant
+    if (data.myQueue !== undefined) {
+      queuePos = data.myQueue;
+      if (handRaised && queuePos !== null) {
+        updateQueueDisplay(queuePos);
+        document.getElementById('btn-raise').innerHTML = `⏳ Antrian #${queuePos + 1} — tap untuk batal`;
+      }
+    }
+
+    // Admin answered this participant (private)
+    if (data.answerPrivate && data.answerPrivate === myName) {
+      showPrivateCallBanner();
+      if (!micEnabled) { toggleMic(); }
+    }
+
+    // Admin broadcast to all
+    if (data.broadcast) {
+      document.getElementById('broadcast-banner').classList.add('show');
+    } else {
+      document.getElementById('broadcast-banner').classList.remove('show');
+    }
+
+    // Queue resolved
+    if (data.queueDone && handRaised) {
+      handRaised = false;
+      queuePos   = null;
+      const btn  = document.getElementById('btn-raise');
+      btn.classList.remove('in-queue', 'cancel');
+      btn.innerHTML = '🖐️ Tanya Pengawas';
+      const frb = document.getElementById('float-raise-btn');
+      if(frb){frb.classList.remove('in-queue','cancel'); frb.innerHTML='🖐️ Tanya Pengawas';}
+      const qi = document.getElementById('popup-queue-info'); if(qi) qi.classList.remove('show');
+      // Auto-mute mic
+      if (micEnabled) toggleMic();
+      showToast('Sesi tanya jawab selesai. Mic Anda dinonaktifkan.', 'info');
+    }
+  }
+
+  function updateAdminStatusUI(status, prev) {
+    const dot   = document.getElementById('popup-admin-dot');
+    const fvDot = document.getElementById('fv-admin-dot');
+    const text  = document.getElementById('admin-status-text');
+    if(dot) dot.className = '';
+    if(fvDot) fvDot.className = 'fv-admin-dot';
+
+    const map = {
+      available: { cls: 'available', label: '🟢 Pengawas tersedia' },
+      busy:      { cls: 'busy',      label: '🔴 Pengawas sedang bicara privat' },
+      broadcast: { cls: 'broadcast', label: '📢 Pengawas sedang bicara ke semua' },
+      idle:      { cls: 'idle',      label: '⏸️ Pengawas tidak aktif' },
+    };
+    const s = map[status] || map.idle;
+    if(dot) dot.classList.add(s.cls);
+    if(fvDot) fvDot.classList.add(s.cls);
+    if(text) text.textContent = s.label;
+
+    if (status === 'broadcast' && prev !== 'broadcast') {
+      showToast('📢 Pengawas sedang bicara kepada semua peserta.', 'warn');
+    }
+  }
+
+  function showPrivateCallBanner() {
+    document.getElementById('private-call-banner').classList.add('show');
+    showToast('📞 Pengawas menghubungi Anda. Mic dibuka otomatis.', 'success');
+    setTimeout(() => {
+      document.getElementById('private-call-banner').classList.remove('show');
+    }, 6000);
+  }
+
+  /* ══════════════════════════════════════════════════
+     LEAVE
+  ══════════════════════════════════════════════════ */
+  function handleLeave() {
+    if (!confirm('Yakin ingin keluar dari ruang ujian?')) return;
+
+    if (handRaised) signalSend('cancel-hand', { name: myName });
+
+    if (jitsiAPI) { try { jitsiAPI.dispose(); } catch {} jitsiAPI = null; }
+    if (selfStream) { selfStream.getTracks().forEach(t => t.stop()); selfStream = null; }
+    clearInterval(timerInterval);
+    clearInterval(pollInterval);
+    timerInterval = pollInterval = null;
+
+    document.getElementById('screen-meet').classList.remove('active');
+    document.body.classList.remove('in-meet');
+    document.getElementById('float-widget').classList.remove('active');
+    document.getElementById('float-raise-btn').classList.remove('active');
+    document.getElementById('ctrl-popup').classList.remove('open');
+    document.getElementById('screen-lobby').style.display = '';
+    document.getElementById('meet-loading').classList.remove('hidden');
+    window.location.hash = '';
+    roomData = null; myName = ''; handRaised = false;
+    micEnabled = false;
+  }
+
+  /* ══════════════════════════════════════════════════
+     TIMER
+  ══════════════════════════════════════════════════ */
+  function updateTimer() {
+    const e = Math.floor((Date.now() - meetStart) / 1000);
+    const m = String(Math.floor(e/60)).padStart(2,'0');
+    const s = String(e%60).padStart(2,'0');
+    document.getElementById('meet-timer').textContent = `${m}:${s}`;
+  }
+
+  /* ══════════════════════════════════════════════════
+     UI HELPERS
+  ══════════════════════════════════════════════════ */
+  function setLoading(on) {
+    const btn = document.getElementById('btn-join');
+    const sp  = document.getElementById('join-spinner');
+    btn.disabled = on;
+    sp.classList.toggle('show', on);
+    btn.childNodes[btn.childNodes.length-1].textContent = on ? ' Menghubungkan…' : ' Masuk Ruang Ujian';
+  }
+
+  function showAlert(msg) {
+    const el = document.getElementById('alert-msg');
+    el.textContent = msg; el.classList.add('show');
+  }
+  function hideAlert() {
+    document.getElementById('alert-msg').classList.remove('show');
+  }
+
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 4000);
+  }
+</script>
+</body>
+</html>

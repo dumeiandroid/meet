@@ -1,0 +1,733 @@
+<!-- ═══════════════════════════════════════════
+     FLOATING MEETING — dengan tombol lengkap dari index_new
+     Ganti MEET_ROOM dan MEET_NAME sesuai kebutuhan
+═══════════════════════════════════════════ -->
+
+<!-- Config -->
+<script>
+var MEET_ROOM    = 'vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/lidan-latihan';   // ← nama room
+var MEET_NAME    = 'Susi';      // ← nama peserta (akan diupdate dari form)
+var MEET_BASE_API = 'https://lidan.co.id/api';
+</script>
+
+<!-- Jitsi SDK -->
+<script src="https://8x8.vc/vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/external_api.js" async></script>
+
+<style>
+/* ── Jitsi modal join ── */
+/* Jitsi selalu di background, WebRTC tetap aktif */
+#fm-jitsi-wrap {
+  position: fixed;
+  top: -9999px; left: -9999px;
+  width: 1px; height: 1px;
+  overflow: hidden; opacity: 0;
+  pointer-events: none;
+}
+#fm-jitsi-container { width: 640px; height: 480px; }
+
+/* ── Tombol Join kecil di sebelah kiri video widget ── */
+#fm-join-btn {
+  position: fixed;
+  bottom: 20px; right: 192px;
+  z-index: 9001;
+  display: none;
+  align-items: center; gap: 7px;
+  padding: 9px 14px;
+  background: #2563eb; border: none;
+  border-radius: 10px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.35);
+  transition: all 0.2s;
+  animation: joinPulse 2s infinite;
+}
+#fm-join-btn.visible { display: flex; }
+#fm-join-btn:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.45); }
+@keyframes joinPulse {
+  0%,100% { box-shadow: 0 4px 16px rgba(37,99,235,0.35); }
+  50%      { box-shadow: 0 4px 24px rgba(37,99,235,0.6); }
+}
+
+/* ── FAB Joint Meeting ── */
+#fab-meeting {
+  position: fixed;
+  bottom: 130px; right: 20px;
+  z-index: 9002;
+  display: none;
+  align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: #2563eb; border: none;
+  border-radius: 12px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+#fab-meeting.fab-visible { display: flex; }
+#fab-meeting:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(37,99,235,0.5); }
+
+/* ── Modal Jitsi penuh ── */
+#jitsi-modal {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 9050;
+  background: rgba(0,0,0,0.85);
+  align-items: center; justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.25s ease both;
+}
+#jitsi-modal.open { display: flex; }
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+#jitsi-modal-inner {
+  position: relative;
+  width: 100%; max-width: 960px; height: 80vh;
+  background: #0b0f1a;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column;
+}
+#jitsi-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+#jitsi-modal-title {
+  font-size: 13px; font-weight: 600; color: #e2e8f0;
+  display: flex; align-items: center; gap: 8px;
+}
+#jitsi-modal-close {
+  background: rgba(255,255,255,0.1); border: none;
+  color: #94a3b8; font-size: 16px; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+#jitsi-modal-close:hover { background: rgba(255,255,255,0.2); color: #fff; }
+#jitsi-modal-body {
+  flex: 1; overflow: hidden; position: relative;
+}
+#jitsi-modal-body iframe {
+  width: 100%; height: 100%; border: none;
+}
+#jitsi-modal-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  color: #64748b; font-size: 13px;
+}
+
+/* ── Floating video widget ── */
+#float-widget {
+  position: fixed; bottom: 20px; right: 20px;
+  z-index: 9000;
+  display: none; flex-direction: column; align-items: flex-end; gap: 6px;
+  filter: drop-shadow(0 8px 32px rgba(0,0,0,0.22));
+}
+#float-widget.active { display: flex; }
+#float-video-box {
+  position: relative; width: 160px; height: 90px;
+  border-radius: 12px; overflow: hidden;
+  background: #0b0f1a; border: 2px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+}
+#self-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+.cam-off-overlay {
+  display: none; position: absolute; inset: 0;
+  background: #1e2a40; align-items: center;
+  justify-content: center; flex-direction: column; gap: 4px;
+}
+.cam-off-overlay.show { display: flex; }
+.cam-off-icon { font-size: 22px; opacity: 0.5; }
+
+#float-video-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  padding: 6px 8px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.fv-top { display: flex; justify-content: flex-end; }
+.fv-admin-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #3d5170; transition: background 0.3s;
+}
+.fv-admin-dot.available { background: #10b981; box-shadow: 0 0 5px #10b981; }
+.fv-admin-dot.busy      { background: #ef4444; }
+.fv-admin-dot.broadcast { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+.fv-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+.fv-timer {
+  font-size: 10px; color: rgba(255,255,255,0.7);
+  letter-spacing: 0.8px; background: rgba(0,0,0,0.45);
+  padding: 1px 5px; border-radius: 3px;
+}
+.fv-hint { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+/* Loading dot di dalam video */
+#fm-loading-dot {
+  display: none; position: absolute; inset: 0;
+  background: #111827; align-items: center;
+  justify-content: center; flex-direction: column; gap: 6px;
+  color: #64748b; font-size: 11px;
+}
+#fm-loading-dot.show { display: flex; }
+.fm-spin {
+  width: 20px; height: 20px;
+  border: 2px solid #334155; border-top-color: #3b82f6;
+  border-radius: 50%; animation: fmSpin .7s linear infinite;
+}
+@keyframes fmSpin { to { transform: rotate(360deg); } }
+
+#float-room-tag {
+  font-size: 10px; color: #64748b;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 5px; padding: 2px 8px;
+  max-width: 160px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; text-align: center;
+}
+
+/* ── Tombol shortcut Tanya Pengawas ── */
+#float-raise-btn {
+  position: fixed; bottom: 20px; right: 192px;
+  z-index: 9000;
+  display: none; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  background: #fffbeb; border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: #92400e; cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+#float-raise-btn.active  { display: flex; }
+#float-raise-btn:hover   { background: #fef3c7; transform: translateY(-1px); }
+#float-raise-btn.in-queue {
+  background: #fef3c7; border-color: #f59e0b; color: #78350f;
+  animation: raiseGlow 2s infinite;
+}
+#float-raise-btn.cancel  { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+@keyframes raiseGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+  50%      { box-shadow: 0 0 0 4px rgba(245,158,11,0.2); }
+}
+
+/* ── Popup kontrol ── */
+#ctrl-popup {
+  position: fixed; bottom: 130px; right: 20px;
+  z-index: 9001;
+  display: none; flex-direction: column; gap: 6px;
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 14px; padding: 12px; width: 220px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+  animation: popupIn 0.18s ease both;
+}
+#ctrl-popup.open { display: flex; }
+@keyframes popupIn {
+  from { opacity:0; transform: scale(0.92) translateY(8px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.popup-section-label {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.8px; color: #94a3b8; padding: 0 4px;
+}
+#popup-admin-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 8px; background: #f8fafc;
+  border-radius: 8px; font-size: 12px; color: #475569;
+}
+#popup-admin-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #cbd5e1; flex-shrink: 0; transition: background 0.3s;
+}
+#popup-admin-dot.available { background: #10b981; box-shadow: 0 0 4px #10b981; }
+#popup-admin-dot.busy      { background: #ef4444; }
+#popup-admin-dot.broadcast { background: #f59e0b; box-shadow: 0 0 4px #f59e0b; }
+#popup-admin-dot.idle      { background: #cbd5e1; }
+#popup-queue-info {
+  display: none; font-size: 11px; color: #92400e;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 6px; padding: 5px 8px;
+}
+#popup-queue-info.show { display: block; }
+
+.pop-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 12px;
+  border-radius: 9px; border: 1px solid;
+  font-family: inherit; font-size: 13px;
+  font-weight: 500; cursor: pointer; text-align: left;
+  transition: all 0.15s;
+}
+.pop-btn-raise { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+.pop-btn-raise:hover { background:#fef3c7; }
+.pop-btn-raise.in-queue { background:#fef3c7; border-color:#f59e0b; color:#78350f; animation: raiseGlow 2s infinite; }
+.pop-btn-raise.cancel   { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+.pop-btn-mic  { background:#f8fafc; border-color:#e2e8f0; color:#475569; }
+.pop-btn-mic:hover { background:#f1f5f9; }
+.pop-btn-mic.active { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+.pop-btn-leave { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
+.pop-btn-leave:hover { background:#fee2e2; }
+
+/* Toast notifikasi */
+#fm-toast-container {
+  position: fixed; top: 70px; right: 20px;
+  z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+}
+.fm-toast {
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; max-width: 280px;
+  animation: toastIn 0.3s ease both;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.fm-toast.success { border-left: 3px solid #10b981; }
+.fm-toast.warn    { border-left: 3px solid #f59e0b; }
+.fm-toast.info    { border-left: 3px solid #3b82f6; }
+@keyframes toastIn {
+  from { opacity:0; transform: translateX(20px); }
+  to   { opacity:1; transform: translateX(0); }
+}
+</style>
+
+<!-- Jitsi container — selalu di background, WebRTC tetap aktif -->
+<div id="fm-jitsi-wrap">
+  <div id="fm-jitsi-container"></div>
+</div>
+
+<!-- Tombol Join kecil — muncul saat siap join, hilang setelah joined -->
+<button id="fm-join-btn" onclick="fmClickJoin()">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M14 12H3"/></svg>
+  Gabung Pengawasan
+</button>
+
+<!-- Tombol shortcut Tanya Pengawas -->
+<button id="float-raise-btn" onclick="handleRaiseHand()">🖐️ Tanya Pengawas</button>
+
+<!-- FAB Joint Meeting — muncul setelah joined -->
+<button id="fab-meeting" onclick="toggleMeetingView()">
+  🎥 Joint Meeting
+</button>
+
+<!-- Modal Jitsi penuh -->
+<div id="jitsi-modal">
+  <div id="jitsi-modal-inner">
+    <div id="jitsi-modal-header">
+      <div id="jitsi-modal-title">
+        <span>🎥</span>
+        <span>Ruang Meeting Pengawas</span>
+      </div>
+      <button id="jitsi-modal-close" onclick="toggleMeetingView()">✕</button>
+    </div>
+    <div id="jitsi-modal-body">
+      <div id="jitsi-modal-placeholder">
+        <div class="fm-spin" style="width:28px;height:28px;border-width:3px;border-color:#334155;border-top-color:#3b82f6;border-radius:50%;animation:fmSpin .7s linear infinite;"></div>
+        <span>Menghubungkan ke meeting…</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating video widget -->
+<div id="float-widget">
+  <div id="float-video-box" onclick="toggleCtrlPopup()" title="Ketuk untuk kontrol">
+    <video id="self-video" autoplay playsinline muted></video>
+    <div class="cam-off-overlay" id="cam-off-overlay">
+      <div class="cam-off-icon">📷</div>
+    </div>
+    <div id="fm-loading-dot" class="show">
+      <div class="fm-spin"></div>
+      <span>Menghubungkan…</span>
+    </div>
+    <div id="float-video-overlay">
+      <div class="fv-top"><div class="fv-admin-dot" id="fv-admin-dot"></div></div>
+      <div class="fv-bottom">
+        <span class="fv-timer" id="meet-timer">00:00</span>
+        <span class="fv-hint">···</span>
+      </div>
+    </div>
+  </div>
+  <div id="float-room-tag">Menghubungkan…</div>
+</div>
+
+<!-- Popup kontrol -->
+<div id="ctrl-popup">
+  <div class="popup-section-label">Status Pengawas</div>
+  <div id="popup-admin-row">
+    <div id="popup-admin-dot" class="idle"></div>
+    <span id="admin-status-text">Menghubungkan…</span>
+  </div>
+  <div id="popup-queue-info"></div>
+  <div class="popup-section-label" style="margin-top:6px">Kontrol</div>
+  <button class="pop-btn pop-btn-mic" id="btn-mic" onclick="toggleMic()">🔇 Mic Mati</button>
+  <button class="pop-btn pop-btn-raise" id="btn-raise" onclick="handleRaiseHand();toggleCtrlPopup()">🖐️ Tanya Pengawas</button>
+  <div class="popup-section-label" style="margin-top:4px">Sesi</div>
+  <button class="pop-btn pop-btn-leave" onclick="handleLeave()">✕ Keluar dari Ruang Ujian</button>
+</div>
+
+<!-- Toast container -->
+<div id="fm-toast-container"></div>
+
+<script>
+(function() {
+  var jitsiAPI = null, selfStream = null, micEnabled = false;
+  var timerInterval = null, pollInterval = null, meetStart = null;
+  var handRaised = false, adminStatus = 'idle', queuePos = null;
+  var roomData = null;
+  var SIGNAL_POLL_MS = 2500;
+
+  // Boot saat halaman load
+  window.addEventListener('load', function() { startMeeting(); });
+
+  /* ── Start meeting: ambil token lalu embed Jitsi ── */
+  async function startMeeting() {
+    try {
+      var res = await fetch(MEET_BASE_API + '/join-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomName: MEET_ROOM, displayName: MEET_NAME, userEmail: '' }),
+        signal: AbortSignal.timeout(8000)
+      });
+      var data = await res.json();
+      if (!data.success || !data.token) { setRoomTag('Gagal join meeting'); return; }
+      roomData = data;
+    } catch(e) { setRoomTag('Server tidak tersedia'); return; }
+
+    // Tampilkan widget dan ID peserta segera setelah token berhasil
+    document.getElementById('float-widget').classList.add('active');
+    if (typeof tampilTopBarId === 'function') tampilTopBarId();
+
+    // Buka kamera
+    try {
+      selfStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('self-video').srcObject = selfStream;
+      selfStream.getAudioTracks().forEach(function(t){ t.enabled = false; });
+      document.getElementById('cam-off-overlay').classList.remove('show');
+    } catch(e) {
+      document.getElementById('cam-off-overlay').classList.add('show');
+    }
+
+    embedJitsi();
+    meetStart = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+    startSignalPoll();
+    setRoomTag(MEET_ROOM);
+  }
+
+  /* ── Embed Jitsi tersembunyi ── */
+  function embedJitsi() {
+    // Tampilkan tombol join kecil
+    document.getElementById('fm-join-btn').classList.add('visible');
+    var tryEmbed = function() {
+      if (typeof JitsiMeetExternalAPI === 'undefined') { setTimeout(tryEmbed, 400); return; }
+      var token = (roomData.token || '').replace(/^"|"$/g,'').trim();
+      var opts = {
+        roomName: roomData.room,
+        width: '100%', height: '100%',
+        parentNode: document.getElementById('fm-jitsi-container'),
+        jwt: token,
+        configOverwrite: {
+          startWithAudioMuted: true, startWithVideoMuted: false,
+          prejoinPageEnabled: false, enableWelcomePage: false,
+          toolbarButtons: [], filmstrip: { enabled: false }, disableTileView: true,
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false, SHOW_WATERMARK_FOR_GUESTS: false,
+          TOOLBAR_ALWAYS_VISIBLE: false, FILM_STRIP_MAX_HEIGHT: 0,
+        }
+      };
+      if (jitsiAPI) { try { jitsiAPI.dispose(); } catch(e){} }
+      jitsiAPI = new JitsiMeetExternalAPI(roomData.domain, opts);
+      jitsiAPI.addEventListener('videoConferenceJoined', function() {
+        // Sembunyikan tombol join, tampilkan floating widget & FAB
+        document.getElementById('fm-join-btn').classList.remove('visible');
+        document.getElementById('fm-loading-dot').classList.remove('show');
+        document.getElementById('float-widget').classList.add('active');
+        document.getElementById('float-raise-btn').classList.add('active');
+        document.getElementById('fab-meeting').classList.add('fab-visible');
+        jitsiAPI.executeCommand('toggleAudio');
+        // Kembalikan iframe ke background container (tetap terhubung, tidak terlihat)
+        var modal    = document.getElementById('jitsi-modal');
+        var body     = document.getElementById('jitsi-modal-body');
+        var ph       = document.getElementById('jitsi-modal-placeholder');
+        var wrap     = document.getElementById('fm-jitsi-wrap');
+        var jitsiCon = document.getElementById('fm-jitsi-container');
+        if (jitsiCon && body.contains(jitsiCon)) {
+          wrap.appendChild(jitsiCon);
+          ph.style.display = 'flex';
+        }
+        modal.classList.remove('open');
+        var fab = document.getElementById('fab-meeting');
+        if (fab) { fab.innerHTML = '🎥 Joint Meeting'; fab.style.background = '#2563eb'; }
+      });
+      jitsiAPI.addEventListener('videoConferenceLeft', function() { handleLeave(); });
+      // Fallback 8 detik
+      setTimeout(function() {
+        document.getElementById('fm-join-btn').classList.remove('visible');
+        document.getElementById('fm-loading-dot').classList.remove('show');
+        document.getElementById('float-widget').classList.add('active');
+        document.getElementById('float-raise-btn').classList.add('active');
+        document.getElementById('fab-meeting').classList.add('fab-visible');
+      }, 8000);
+    };
+    tryEmbed();
+  }
+
+  /* ── Toggle Meeting View (FAB) ── */
+  window.toggleMeetingView = function() {
+    var modal    = document.getElementById('jitsi-modal');
+    var fab      = document.getElementById('fab-meeting');
+    var body     = document.getElementById('jitsi-modal-body');
+    var ph       = document.getElementById('jitsi-modal-placeholder');
+    var jitsiCon = document.getElementById('fm-jitsi-container');
+    var isOpen   = modal.classList.contains('open');
+    if (isOpen) {
+      // Tutup modal — kembalikan iframe ke background container
+      if (jitsiCon && body.contains(jitsiCon)) {
+        document.getElementById('fm-jitsi-wrap').appendChild(jitsiCon);
+        ph.style.display = 'flex';
+      }
+      modal.classList.remove('open');
+      if (fab) { fab.innerHTML = '🎥 Joint Meeting'; fab.style.background = '#2563eb'; }
+    } else {
+      // Buka modal — pindahkan iframe ke dalam modal
+      if (jitsiCon) {
+        ph.style.display = 'none';
+        body.appendChild(jitsiCon);
+        jitsiCon.style.width  = '100%';
+        jitsiCon.style.height = '100%';
+      }
+      modal.classList.add('open');
+      if (fab) { fab.innerHTML = '✕ Tutup Meeting'; fab.style.background = '#ef4444'; }
+    }
+  };
+
+  /* ── Toggle Mic ── */
+  function toggleMic() {
+    if (!jitsiAPI) return;
+    micEnabled = !micEnabled;
+    jitsiAPI.executeCommand('toggleAudio');
+    if (selfStream) selfStream.getAudioTracks().forEach(function(t){ t.enabled = micEnabled; });
+    var btn = document.getElementById('btn-mic');
+    if (micEnabled) { btn.innerHTML = '🎙️ Mic Hidup'; btn.classList.add('active'); }
+    else            { btn.innerHTML = '🔇 Mic Mati';  btn.classList.remove('active'); }
+  }
+
+  /* ── Toggle popup kontrol ── */
+  function toggleCtrlPopup() {
+    document.getElementById('ctrl-popup').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    var popup = document.getElementById('ctrl-popup');
+    var box   = document.getElementById('float-video-box');
+    if (popup && box && !popup.contains(e.target) && !box.contains(e.target)) {
+      popup.classList.remove('open');
+    }
+  });
+
+  /* ── Raise Hand / Tanya Pengawas ── */
+  function handleRaiseHand() {
+    if (!roomData) return;
+    var btn = document.getElementById('btn-raise');
+    if (handRaised) {
+      handRaised = false;
+      btn.classList.remove('in-queue', 'cancel');
+      btn.innerHTML = '🖐️ Tanya Pengawas';
+      var frb = document.getElementById('float-raise-btn');
+      if (frb) { frb.classList.remove('in-queue','cancel'); frb.innerHTML = '🖐️ Tanya Pengawas'; }
+      var qi = document.getElementById('popup-queue-info'); if(qi) qi.classList.remove('show');
+      signalSend('cancel-hand', { name: MEET_NAME });
+      showToast('Pertanyaan dibatalkan.', 'info');
+      return;
+    }
+    if (adminStatus === 'idle') { showToast('Pengawas sedang tidak aktif. Coba lagi nanti.', 'warn'); return; }
+    handRaised = true;
+    btn.classList.add('in-queue');
+    btn.innerHTML = '⏳ Menunggu… (tap untuk batal)';
+    var frb2 = document.getElementById('float-raise-btn');
+    if (frb2) { frb2.classList.add('in-queue'); frb2.innerHTML = '⏳ Menunggu pengawas…'; }
+    signalSend('raise-hand', { name: MEET_NAME }).then(function(res) {
+      if (res && res.queuePos !== undefined) {
+        if (res.queuePos === 0 && adminStatus === 'available') {
+          showToast('Pengawas siap! Mic Anda akan dibuka.', 'success');
+          btn.innerHTML = '🗣️ Sedang Bicara…'; btn.classList.remove('in-queue');
+        } else {
+          queuePos = res.queuePos;
+          updateQueueDisplay(queuePos);
+          btn.classList.add('cancel');
+          btn.innerHTML = '⏳ Antrian #' + (queuePos + 1) + ' — tap untuk batal';
+        }
+      }
+    });
+  }
+
+  function updateQueueDisplay(pos) {
+    var wait = (pos + 1) * 2;
+    var el = document.getElementById('popup-queue-info');
+    if (el) { el.textContent = 'Antrian #' + (pos+1) + ' — estimasi ±' + wait + ' mnt'; el.classList.add('show'); }
+    var frb = document.getElementById('float-raise-btn');
+    if (frb) { frb.classList.add('cancel'); frb.innerHTML = '⏳ Antrian #' + (pos+1) + ' — tap batal'; }
+  }
+
+  /* ── Leave ── */
+  function handleLeave() {
+    if (!confirm('Yakin ingin keluar dari ruang ujian?')) return;
+    if (handRaised) signalSend('cancel-hand', { name: MEET_NAME });
+    if (jitsiAPI) { try { jitsiAPI.dispose(); } catch(e){} jitsiAPI = null; }
+    if (selfStream) { selfStream.getTracks().forEach(function(t){ t.stop(); }); selfStream = null; }
+    clearInterval(timerInterval); clearInterval(pollInterval);
+    document.getElementById('float-widget').classList.remove('active');
+    document.getElementById('float-raise-btn').classList.remove('active');
+    document.getElementById('ctrl-popup').classList.remove('open');
+    document.getElementById('fab-meeting').classList.remove('fab-visible');
+    document.getElementById('jitsi-modal').classList.remove('open');
+    roomData = null; handRaised = false; micEnabled = false;
+  }
+
+  /* ── Signal send & poll ── */
+  function signalSend(type, payload) {
+    if (!roomData) return Promise.resolve(null);
+    return fetch(MEET_BASE_API + '/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ type: type, room: roomData.room, sender: MEET_NAME }, payload || {}))
+    }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+  }
+
+  function startSignalPoll() {
+    pollInterval = setInterval(pollSignal, SIGNAL_POLL_MS);
+    pollSignal();
+  }
+
+  function pollSignal() {
+    if (!roomData) return;
+    fetch(MEET_BASE_API + '/signal?room=' + encodeURIComponent(roomData.room) + '&participant=' + encodeURIComponent(MEET_NAME))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (!data.success) return;
+      // Admin status
+      if (data.adminStatus !== undefined) {
+        var prev = adminStatus;
+        adminStatus = data.adminStatus;
+        updateAdminStatusUI(adminStatus, prev);
+      }
+      // Queue position
+      if (data.myQueue !== undefined && handRaised) {
+        queuePos = data.myQueue;
+        if (queuePos !== null) {
+          updateQueueDisplay(queuePos);
+          document.getElementById('btn-raise').innerHTML = '⏳ Antrian #' + (queuePos+1) + ' — tap untuk batal';
+        }
+      }
+      // Private call
+      if (data.answerPrivate && data.answerPrivate === MEET_NAME) {
+        showToast('📞 Pengawas menghubungi Anda. Mic dibuka otomatis.', 'success');
+        if (!micEnabled) toggleMic();
+      }
+      // Queue selesai
+      if (data.queueDone && handRaised) {
+        handRaised = false; queuePos = null;
+        var btn = document.getElementById('btn-raise');
+        btn.classList.remove('in-queue','cancel'); btn.innerHTML = '🖐️ Tanya Pengawas';
+        var frb = document.getElementById('float-raise-btn');
+        if (frb) { frb.classList.remove('in-queue','cancel'); frb.innerHTML = '🖐️ Tanya Pengawas'; }
+        var qi = document.getElementById('popup-queue-info'); if(qi) qi.classList.remove('show');
+        if (micEnabled) toggleMic();
+        showToast('Sesi tanya jawab selesai. Mic Anda dinonaktifkan.', 'info');
+      }
+    }).catch(function(){});
+  }
+
+  function updateAdminStatusUI(status, prev) {
+    var dot   = document.getElementById('popup-admin-dot');
+    var fvDot = document.getElementById('fv-admin-dot');
+    var text  = document.getElementById('admin-status-text');
+    if (dot)   dot.className = '';
+    if (fvDot) fvDot.className = 'fv-admin-dot';
+    var map = {
+      available: { cls: 'available', label: '🟢 Pengawas tersedia' },
+      busy:      { cls: 'busy',      label: '🔴 Pengawas sedang bicara privat' },
+      broadcast: { cls: 'broadcast', label: '📢 Pengawas sedang bicara ke semua' },
+      idle:      { cls: 'idle',      label: '⏸️ Pengawas tidak aktif' },
+    };
+    var s = map[status] || map.idle;
+    if (dot)   dot.classList.add(s.cls);
+    if (fvDot) fvDot.classList.add(s.cls);
+    if (text)  text.textContent = s.label;
+    if (status === 'broadcast' && prev !== 'broadcast') showToast('📢 Pengawas sedang bicara kepada semua peserta.', 'warn');
+  }
+
+  /* ── Timer ── */
+  function updateTimer() {
+    var e = Math.floor((Date.now() - meetStart) / 1000);
+    var m = String(Math.floor(e/60)).padStart(2,'0');
+    var s = String(e%60).padStart(2,'0');
+    var el = document.getElementById('meet-timer');
+    if (el) el.textContent = m + ':' + s;
+  }
+
+  /* ── Toast ── */
+  function showToast(msg, type) {
+    var c = document.getElementById('fm-toast-container');
+    var t = document.createElement('div');
+    t.className = 'fm-toast ' + (type||'info');
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(function(){ t.remove(); },300); }, 4000);
+  }
+
+  function setRoomTag(txt) {
+    var el = document.getElementById('float-room-tag');
+    if (el) el.textContent = txt;
+  }
+
+  // Klik tombol Join di dalam iframe Jitsi
+  window.fmClickJoin = function() {
+    var btn = document.getElementById('fm-join-btn');
+    if (btn) { btn.textContent = '⏳ Bergabung…'; btn.style.opacity = '0.7'; btn.disabled = true; }
+    var container = document.getElementById('fm-jitsi-container');
+    var iframe = container ? container.querySelector('iframe') : null;
+    if (iframe) {
+      try {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        var joinBtn = doc.querySelector('[data-testid="prejoin-join-button"]') ||
+                      doc.querySelector('button[class*="joinButton"]') ||
+                      doc.querySelector('.primary.medium');
+        if (joinBtn) { joinBtn.click(); return; }
+      } catch(e) {}
+      iframe.contentWindow.postMessage({ type: 'join-meeting' }, '*');
+    }
+    if (jitsiAPI) { try { jitsiAPI.executeCommand('joinConference'); } catch(e) {} }
+  };
+
+  // Expose untuk update nama dari form
+  window.fmUpdateName = function(namaBaru) {
+    MEET_NAME = namaBaru;
+    // Update display name di Jitsi
+    if (jitsiAPI) { try { jitsiAPI.executeCommand('displayName', MEET_NAME); } catch(e){} }
+    // Re-register ke server agar admin melihat nama yang benar
+    fetch(MEET_BASE_API + '/join-room', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomName: MEET_ROOM, displayName: MEET_NAME, userEmail: '' })
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if (data.success) {
+        roomData = data;
+        console.log('[Meet] Re-registered dengan nama:', MEET_NAME, '| room:', data.room);
+      }
+    }).catch(function(){});
+  };
+
+  // Expose toggleMic, handleRaiseHand, toggleCtrlPopup, handleLeave ke global
+  window.toggleMic       = toggleMic;
+  window.handleRaiseHand = handleRaiseHand;
+  window.toggleCtrlPopup = toggleCtrlPopup;
+  window.handleLeave     = handleLeave;
+})();
+</script>
