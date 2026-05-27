@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lidan Meet — Pengawas [proposal]</title>
+  <title>Lidan Meet — Dashboard Pengawas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
@@ -559,18 +559,26 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<script src="https://8x8.vc/vpaas-magic-cookie-a56106f2fccd4aba85b832528e53d48a/external_api.js" async></script>
+<script src="https://8x8.vc/vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/external_api.js" async></script>
 
 <script>
   /* ══════════════════════════════════════════════════
-     CONFIG
+     CONFIG — ubah di sini jika domain atau path berubah
   ══════════════════════════════════════════════════ */
   const API_READ  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
   const API_WRITE = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
-  const BASE_API  = 'https://tabi.my.id/api/proposal';
   const AUTH_KEY  = 'admin';
   const TBL_ADMIN = 'admins';
   const POLL_MS   = 2500;
+
+  // ── UBAH DI SINI JIKA DOMAIN / PATH BERUBAH ──
+  const BASE_API        = 'https://lidan.co.id/api';
+  const SIGNAL_PATH     = 'signal';
+  const ADMIN_ROOM_PATH = 'admin-room';
+
+  // URL lengkap — tidak perlu diubah
+  const API_SIGNAL     = `${BASE_API}/${SIGNAL_PATH}`;
+  const API_ADMIN_ROOM = `${BASE_API}/${ADMIN_ROOM_PATH}`;
 
   /* ══════════════════════════════════════════════════
      STATE
@@ -619,7 +627,7 @@
     var room = (roomData && roomData.room) || _lastRoom;
     if (room) {
       try {
-        await fetch(BASE_API + '/signal', {
+        await fetch(API_SIGNAL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'admin-status', room: room, sender: 'admin', status: 'idle' }),
@@ -639,7 +647,7 @@
   window.addEventListener('beforeunload', function() {
     var room = (roomData && roomData.room) || _lastRoom;
     if (room) {
-      navigator.sendBeacon(BASE_API + '/signal',
+      navigator.sendBeacon(API_SIGNAL,
         new Blob([JSON.stringify({ type: 'admin-status', room: room, sender: 'admin', status: 'idle' })],
         { type: 'application/json' })
       );
@@ -679,7 +687,7 @@
     document.getElementById('admin-loading').classList.remove('hidden');
 
     try {
-      const res = await fetch(`${BASE_API}/admin-room`, {
+      const res = await fetch(API_ADMIN_ROOM, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -866,7 +874,7 @@
         const leftRoom = (roomData && roomData.room) || _lastRoom;
         if (leftRoom) {
           try {
-            await fetch(BASE_API + '/signal', {
+            await fetch(API_SIGNAL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ type: 'admin-status', room: leftRoom, sender: 'admin', status: 'idle' }),
@@ -1018,7 +1026,7 @@
     if (!roomData) return;
     try {
       const res = await fetch(
-        `${BASE_API}/signal?room=${encodeURIComponent(roomData.room)}&role=admin`
+        `${API_SIGNAL}?room=${encodeURIComponent(roomData.room)}&role=admin`
       );
       const data = await res.json();
       if (!data.success) return;
@@ -1077,7 +1085,7 @@
   async function signalSend(type, payload = {}) {
     if (!roomData) return null;
     try {
-      const res = await fetch(`${BASE_API}/signal`, {
+      const res = await fetch(API_SIGNAL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, room: roomData.room, sender: 'admin', ...payload }),
