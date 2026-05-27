@@ -49,8 +49,6 @@
   let adminStatus   = 'idle';
   let _uiInjected        = false;
   let _pipAutoCloseTimer = null;
-  let _adminParticipantId = null; // Jitsi participant ID milik pengawas
-  let _joinedAt           = null; // timestamp saat berhasil join (untuk filter history replay)
 
   /* ══════════════════════════════════════════════════
      CSS
@@ -253,11 +251,6 @@
         opacity: 1 !important;
         pointer-events: all !important;
       }
-      /* Saat chat terbuka, iframe dimulai dari bawah close bar */
-      #lm-jitsi-wrap.lm-chat-open #lm-jitsi-container {
-        height: calc(100vh - 44px) !important;
-        margin-top: 44px;
-      }
       #lm-jitsi-container { width: 100%; height: 100%; }
 
       /* ── CHAT CLOSE BAR ── */
@@ -291,23 +284,6 @@
         transition: background 0.2s;
       }
       #lm-chat-close-btn:hover { background: var(--lm-danger); color: #fff; }
-
-      /* ── VIDEO BLOCK (area di sebelah kanan chat, ditutupi) ── */
-      /* Lebar chat Jitsi ~315px; sisanya ditutup */
-      #lm-video-block {
-        position: fixed;
-        top: 44px; left: 315px; right: 0; bottom: 0;
-        z-index: 99996;
-        background: #0b0f1a;
-        display: none;
-        align-items: center; justify-content: center;
-        flex-direction: column; gap: 12px;
-        color: #3d5170; font-family: var(--lm-font-body); font-size: 14px;
-        pointer-events: all;
-      }
-      @media (max-width: 600px) {
-        #lm-video-block { display: none !important; }
-      }
 
       /* ── PiP WIDGET ── */
       #lm-pip-widget {
@@ -821,7 +797,7 @@
     document.getElementById('lm-lobby-overlay').classList.add('lm-hidden');
     document.getElementById('lm-loading-screen').classList.add('lm-show');
     document.getElementById('lm-pip-widget').classList.add('lm-visible');
-    // Timer badge disembunyikan (tidak ditampilkan ke peserta)
+    document.getElementById('lm-timer-badge').classList.add('lm-show');
 
     meetStart     = Date.now();
     timerInterval = setInterval(updateTimer, 1000);
@@ -974,39 +950,10 @@
         hideLoadingScreen();
         showToast('✅ Terhubung ke ruang ujian.', 'success');
         try { jitsiAPI.executeCommand('setAudioMuted', true); } catch {}
-        // Tandai waktu join — pesan dalam 5 detik pertama diabaikan (history replay)
-        _joinedAt = Date.now();
-      });
-
-      // Lacak participant → cari ID admin (displayName mengandung "[Pengawas]")
-      jitsiAPI.addEventListener('participantJoined', ({ id, displayName }) => {
-        if ((displayName || '').includes('[Pengawas]') || (displayName || '').toLowerCase().includes('pengawas')) {
-          _adminParticipantId = id;
-        }
-      });
-      jitsiAPI.addEventListener('participantLeft', ({ id }) => {
-        if (id === _adminParticipantId) _adminParticipantId = null;
-      });
-
-      // Intercept outgoingMessage: jika bukan private ke admin, batalkan via toast
-      // (Jitsi sudah kirim — kita tidak bisa batalkan, tapi bisa redirect ulang)
-      jitsiAPI.addEventListener('outgoingMessage', ({ message, privateMessage, recipientDisplayName }) => {
-        if (!privateMessage) {
-          // Pesan dikirim ke "Everyone" — coba kirim ulang sebagai private ke admin
-          if (_adminParticipantId) {
-            try {
-              jitsiAPI.executeCommand('sendChatMessage', message, _adminParticipantId);
-            } catch {}
-          }
-          // Tampilkan peringatan
-          showToast('⚠️ Pesan hanya bisa dikirim ke Pengawas.', 'warn');
-        }
       });
 
       // Event: pesan masuk dari Jitsi chat → tampilkan notifikasi di tombol PiP
-      // Abaikan pesan dalam 5 detik pertama setelah join (history replay)
       jitsiAPI.addEventListener('incomingMessage', ({ from, message, privateMessage }) => {
-        if (_joinedAt && Date.now() - _joinedAt < 5000) return;
         const btn = document.getElementById('lm-btn-chat');
         if (btn) {
           btn.classList.add('lm-has-unread');
@@ -1095,7 +1042,7 @@
 
     window.location.hash = '';
     clearSession();
-    roomData = null; myName = ''; handRaised = false; micEnabled = false; _adminParticipantId = null; _joinedAt = null;
+    roomData = null; myName = ''; handRaised = false; micEnabled = false;
   }
 
   /* ══════════════════════════════════════════════════
@@ -1104,8 +1051,6 @@
      - Klik di luar panel tutup
   ══════════════════════════════════════════════════ */
   function openPipPanel() {
-    // Jika admin idle, jangan tampilkan panel sama sekali
-    if (adminStatus === 'idle') return;
     const panel = document.getElementById('lm-pip-panel');
     const box   = document.getElementById('lm-pip-box');
     panel.classList.add('lm-open');
@@ -1303,32 +1248,15 @@
     if (wrap) wrap.classList.add('lm-chat-open');
     if (bar)  bar.classList.add('lm-show');
     if (btn)  { btn.classList.remove('lm-has-unread'); btn.textContent = '✕ Tutup Chat'; }
-
-    // Pasang video-block overlay (menutupi area non-chat)
-    const vb = document.getElementById('lm-video-block');
-    if (vb) vb.style.display = 'flex';
-    else { ensureVideoBlockOverlay(); document.getElementById('lm-video-block').style.display = 'flex'; }
-
+    // Beri ruang atas agar tidak tertutup close bar (44px)
+    const container = document.getElementById('lm-jitsi-container');
+    if (container) container.style.paddingTop = '44px';
     // Buka chat Jitsi via command setelah overlay tampil
     setTimeout(() => {
       if (jitsiAPI) {
         try { jitsiAPI.executeCommand('toggleChat'); } catch {}
       }
     }, 200);
-  }
-
-  /* ── Video-block overlay: kotak hitam menutupi area video,
-     hanya area chat kiri (~315px) yang transparan ── */
-  function ensureVideoBlockOverlay() {
-    if (document.getElementById('lm-video-block')) return;
-    const el = document.createElement('div');
-    el.id = 'lm-video-block';
-    el.innerHTML = `
-      <div style="font-size:32px">📋</div>
-      <div style="color:#6b7fa3;font-weight:500">Sedang Ujian</div>
-      <div style="font-size:12px;color:#3d5170">Video dinonaktifkan selama ujian berlangsung</div>
-    `;
-    document.body.appendChild(el);
   }
 
   function closeJitsiOverlay() {
@@ -1339,9 +1267,8 @@
     if (wrap) wrap.classList.remove('lm-chat-open');
     if (bar)  bar.classList.remove('lm-show');
     if (btn)  btn.textContent = '💬 Chat';
-    // Sembunyikan video block overlay
-    const vb = document.getElementById('lm-video-block');
-    if (vb) vb.style.display = 'none';
+    const container = document.getElementById('lm-jitsi-container');
+    if (container) container.style.paddingTop = '';
     // Tutup chat Jitsi juga
     if (jitsiAPI) {
       try { jitsiAPI.executeCommand('toggleChat'); } catch {}

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lidan Meet — Multi Akun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:      #080c15;
+      --surface: #0f1623;
+      --border:  #1e2d45;
+      --accent:  #3b82f6;
+      --accent2: #06b6d4;
+      --success: #10b981;
+      --warn:    #f59e0b;
+      --danger:  #ef4444;
+      --text:    #e8edf5;
+      --muted:   #4e6589;
+      --tab-h:   48px;
+      --font-d:  'Syne', sans-serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); font-family: var(--font-b); color: var(--text); display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    .shell-header {
+      height: 40px; flex-shrink: 0;
+      display: flex; align-items: center;
+      padding: 0 16px; gap: 12px;
+      background: #05080f;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .shell-brand { font-family: var(--font-d); font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+    .shell-brand span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .shell-badge { font-size: 10px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: var(--accent); padding: 2px 8px; border-radius: 100px; }
+    .shell-info { font-size: 11px; color: var(--muted); margin-left: auto; }
+    .live-count { font-size: 11px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--success); padding: 2px 10px; border-radius: 100px; }
+
+    /* ── TAB BAR ── */
+    .tab-bar {
+      height: var(--tab-h); flex-shrink: 0;
+      display: flex; align-items: flex-end;
+      padding: 0 8px; gap: 2px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .tab-bar::-webkit-scrollbar { height: 3px; }
+    .tab-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .tab {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 14px 10px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      font-family: var(--font-b); font-size: 12px; font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap; flex-shrink: 0;
+      position: relative;
+      user-select: none;
+    }
+    .tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .tab.active {
+      color: var(--text);
+      background: var(--bg);
+      border-color: var(--border);
+      border-bottom-color: var(--bg);
+      margin-bottom: -1px;
+      z-index: 2;
+    }
+
+    /* Status dot per tab */
+    .tab-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .tab.live .tab-dot   { background: var(--success); box-shadow: 0 0 5px var(--success); animation: pulse 2s infinite; }
+    .tab.warn .tab-dot   { background: var(--warn); }
+    .tab.active .tab-dot { outline: none; }
+    @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
+
+    /* Notif badge */
+    .tab-notif {
+      display: none;
+      background: var(--danger); color: #fff;
+      font-size: 9px; font-weight: 700;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      padding: 0 4px; align-items: center; justify-content: center;
+    }
+    .tab.has-notif .tab-notif { display: flex; }
+
+    /* ── IFRAME AREA ── */
+    .frame-area { flex: 1; position: relative; overflow: hidden; }
+
+    .frame-wrap {
+      position: absolute; inset: 0;
+      display: none;
+      border: none;
+    }
+    .frame-wrap.active { display: block; }
+
+    .frame-wrap iframe {
+      width: 100%; height: 100%;
+      border: none; background: #0b0f1a;
+    }
+
+    /* Loading state per frame */
+    .frame-loading {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      background: #0b0f1a;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .frame-loading.hidden { opacity: 0; pointer-events: none; }
+    .frame-loading.gone   { display: none; }
+    .fl-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #1e2d45;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .fl-label { font-size: 13px; color: #4e6589; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── STATUS BAR BOTTOM ── */
+    .status-bar {
+      height: 26px; flex-shrink: 0;
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 16px;
+      background: #05080f;
+      border-top: 1px solid var(--border);
+      font-size: 10px; color: var(--muted);
+    }
+    .sb-item { display: flex; align-items: center; gap: 5px; }
+    .sb-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
+    .sb-dot.green { background: var(--success); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="shell-header">
+  <div class="shell-brand">Lidan<span>Meet</span></div>
+  <div class="shell-badge">Multi Akun</div>
+  <div class="live-count" id="live-count">0 akun live</div>
+  <div class="shell-info" id="shell-info">Pilih tab untuk mulai</div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar" id="tab-bar"></div>
+
+<!-- IFRAME AREA -->
+<div class="frame-area" id="frame-area"></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="sb-item"><div class="sb-dot green"></div>Tab aktif tetap berjalan di background</div>
+  <div class="sb-item" id="sb-active-acc">—</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   DAFTAR AKUN — sesuai dengan generate_html.php
+══════════════════════════════════════════════════ */
+const ACCOUNTS = [
+  { name: 'utama',     email: 'dumeiheri@gmail.com' },
+  { name: 'psikologi', email: 'lidanpsikologi@gmail.com' },
+  { name: 'infolidan', email: 'infolidan@gmail.com' },
+  { name: 'cipta',     email: 'ciptapersadatabi@gmail.com' },
+  { name: 'android',   email: 'dumei.android@gmail.com' },
+  { name: 'brosur',    email: 'lidanindah.brosur@gmail.com' },
+  { name: 'proposal',  email: 'lidanindah.proposal@gmail.com' },
+  { name: 'produk',    email: 'lidanindah.produk@gmail.com' },
+  { name: 'video',     email: 'lidanindah.video@gmail.com' },
+  { name: 'form',      email: 'lidanindah.form@gmail.com' },
+  { name: 'legal',     email: 'lidanindah.legal@gmail.com' },
+  { name: 'gambar',    email: 'lidanindah.gambar@gmail.com' },
+];
+
+// URL file admin.html — sesuaikan dengan lokasi deploy Anda
+// Jika diletakkan di folder yang sama: './admin.html'
+// Jika di subfolder: './meet/admin.html'
+const ADMIN_URL = './admin.html';
+
+let activeTab = null;
+// Track status tiap akun: 'idle' | 'live' | 'warn'
+const tabStatus = {};
+const tabEls    = {};
+const frameEls  = {};
+const loadingEls= {};
+
+/* ══════════════════════════════════════════════════
+   BUILD UI
+══════════════════════════════════════════════════ */
+function buildUI() {
+  const tabBar   = document.getElementById('tab-bar');
+  const frameArea= document.getElementById('frame-area');
+
+  ACCOUNTS.forEach((acc, i) => {
+    tabStatus[acc.name] = 'idle';
+
+    /* --- TAB --- */
+    const tab = document.createElement('button');
+    tab.className = 'tab';
+    tab.dataset.name = acc.name;
+    tab.innerHTML = `
+      <span class="tab-dot"></span>
+      <span class="tab-name">${acc.name}</span>
+      <span class="tab-notif" id="notif-${acc.name}">0</span>
+    `;
+    tab.addEventListener('click', () => switchTab(acc.name));
+    tabBar.appendChild(tab);
+    tabEls[acc.name] = tab;
+
+    /* --- FRAME WRAP --- */
+    const wrap = document.createElement('div');
+    wrap.className = 'frame-wrap';
+    wrap.id = 'wrap-' + acc.name;
+
+    // Loading overlay
+    const loading = document.createElement('div');
+    loading.className = 'frame-loading';
+    loading.innerHTML = `
+      <div class="fl-spinner"></div>
+      <div class="fl-label">Memuat akun <strong>${acc.name}</strong>…</div>
+    `;
+    wrap.appendChild(loading);
+    loadingEls[acc.name] = loading;
+
+    // iframe — src belum diset, baru diset saat pertama diklik (lazy load)
+    const iframe = document.createElement('iframe');
+    iframe.id = 'frame-' + acc.name;
+    iframe.title = 'Admin ' + acc.name;
+    iframe.setAttribute('allow', 'camera; microphone; display-capture; autoplay; clipboard-write');
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.style.display = 'none'; // sembunyikan dulu sampai loading selesai
+    wrap.appendChild(iframe);
+    frameEls[acc.name] = iframe;
+
+    // Saat iframe selesai load → sembunyikan loading overlay
+    iframe.addEventListener('load', () => {
+      loading.classList.add('hidden');
+      iframe.style.display = '';
+      setTimeout(() => loading.classList.add('gone'), 400);
+      // Mulai listen pesan dari iframe
+      listenFrameMessages(acc.name, iframe);
+    });
+
+    frameArea.appendChild(wrap);
+
+    // Aktifkan tab pertama otomatis
+    if (i === 0) switchTab(acc.name);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   SWITCH TAB
+══════════════════════════════════════════════════ */
+function switchTab(name) {
+  if (activeTab === name) return;
+
+  // Sembunyikan tab lama
+  if (activeTab) {
+    tabEls[activeTab].classList.remove('active');
+    document.getElementById('wrap-' + activeTab).classList.remove('active');
+  }
+
+  activeTab = name;
+
+  // Tampilkan tab baru
+  tabEls[name].classList.add('active');
+  document.getElementById('wrap-' + name).classList.add('active');
+
+  // Lazy load: baru load iframe saat pertama diklik
+  const iframe = frameEls[name];
+  if (!iframe.src || iframe.src === 'about:blank' || iframe.src === '') {
+    iframe.src = ADMIN_URL + '?acc=' + encodeURIComponent(name);
+  }
+
+  // Update status bar
+  document.getElementById('sb-active-acc').textContent = 'Akun aktif: ' + name;
+  document.getElementById('shell-info').textContent = 'Akun: ' + name;
+}
+
+/* ══════════════════════════════════════════════════
+   LISTEN PESAN DARI IFRAME
+   Iframe admin.html bisa postMessage ke parent:
+   { type: 'lidan-status', acc: 'utama', status: 'live'|'idle'|'warn', queue: N }
+══════════════════════════════════════════════════ */
+function listenFrameMessages(name, iframe) {
+  // Gunakan window message listener global (filter by acc name)
+}
+
+// Global message listener
+window.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data !== 'object') return;
+  if (e.data.type !== 'lidan-status') return;
+  const { acc, status, queue } = e.data;
+  if (!acc || !tabEls[acc]) return;
+
+  tabStatus[acc] = status;
+  const tab = tabEls[acc];
+
+  // Update dot & class
+  tab.classList.remove('live', 'warn');
+  if (status === 'live') tab.classList.add('live');
+  if (status === 'warn') tab.classList.add('warn');
+
+  // Update notif badge (antrian)
+  const notif = document.getElementById('notif-' + acc);
+  if (queue && queue > 0) {
+    notif.textContent = queue;
+    tab.classList.add('has-notif');
+  } else {
+    tab.classList.remove('has-notif');
+  }
+
+  // Update live count
+  updateLiveCount();
+});
+
+function updateLiveCount() {
+  const n = Object.values(tabStatus).filter(s => s === 'live').length;
+  document.getElementById('live-count').textContent = n + ' akun live';
+}
+
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+buildUI();
+</script>
+</body>
+</html>

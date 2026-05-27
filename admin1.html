@@ -529,7 +529,7 @@
       </div>
 
       <!-- Queue Panel -->
-      <div class="sidebar-section" style="max-height:260px;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
         <div class="sidebar-head">
           Antrian Pertanyaan
           <span class="count-badge" id="queue-count-badge">0</span>
@@ -537,17 +537,6 @@
         <div class="sidebar-body" style="flex:1;overflow-y:auto;padding-top:8px;">
           <div class="queue-list" id="queue-list">
             <div class="empty-queue">Tidak ada antrian saat ini</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chat Panel — menggunakan Jitsi built-in chat -->
-      <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-        <div class="sidebar-head">💬 Chat Peserta</div>
-        <div style="padding:16px;font-size:12px;color:var(--text-muted);line-height:1.7;flex:1;">
-          <div style="margin-bottom:10px;">Chat menggunakan fitur bawaan Jitsi.</div>
-          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;color:var(--accent);font-size:11px;">
-            Klik tombol <strong>💬</strong> di toolbar video Jitsi untuk membuka chat. Pesan terkirim ke semua peserta dalam room yang sama.
           </div>
         </div>
       </div>
@@ -582,7 +571,6 @@
   let adminStatus    = 'idle'; // idle | available | busy | broadcast
   let isBroadcasting = false;
   let queue          = [];       // [{name, joinedAt}]
-  let _lastRoom      = '';       // nama room terakhir — tetap ada meski roomData di-null
   let activeSpeaker  = null;     // name of participant in private call
 
   /* ══════════════════════════════════════════════════
@@ -614,37 +602,14 @@
     }
   }
 
-  async function doLogout() {
-    // Kirim status idle ke server SEBELUM logout agar peserta tahu admin tidak aktif
-    var room = (roomData && roomData.room) || _lastRoom;
-    if (room) {
-      try {
-        await fetch(BASE_API + '/signal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'admin-status', room: room, sender: 'admin', status: 'idle' }),
-        });
-      } catch {}
-    }
+  function doLogout() {
     sessionStorage.removeItem('admin_user');
     if (jitsiAPI) { try { jitsiAPI.dispose(); } catch {} jitsiAPI = null; }
     clearInterval(pollInterval); pollInterval = null;
-    roomData = null; currentUser = null; adminStatus = 'idle'; queue = [];
-    document.getElementById('room-active-tag').style.display = 'none';
+    currentUser = null; adminStatus = 'idle'; queue = [];
     document.getElementById('screen-app').classList.remove('active');
     document.getElementById('screen-login').classList.add('active');
   }
-
-  // Kirim idle ke server saat tab/browser ditutup paksa
-  window.addEventListener('beforeunload', function() {
-    var room = (roomData && roomData.room) || _lastRoom;
-    if (room) {
-      navigator.sendBeacon(BASE_API + '/signal',
-        new Blob([JSON.stringify({ type: 'admin-status', room: room, sender: 'admin', status: 'idle' })],
-        { type: 'application/json' })
-      );
-    }
-  });
 
   window.addEventListener('load', async () => {
     const saved = sessionStorage.getItem('admin_user');
@@ -697,7 +662,6 @@
         return;
       }
       roomData = data;
-      _lastRoom = data.room || '';
     } catch(e) {
       document.getElementById('admin-loading').classList.add('hidden');
       document.getElementById('admin-no-room').classList.remove('hidden');
@@ -734,7 +698,6 @@
           startWithAudioMuted: true,
           startWithVideoMuted: false,
           prejoinPageEnabled: false,
-          prejoinConfig: { enabled: false },
           enableWelcomePage: false,
           disableModeratorIndicator: false,
           // Admin bisa lihat SEMUA peserta (filmstrip on)
@@ -756,139 +719,11 @@
 
       if (jitsiAPI) { try { jitsiAPI.dispose(); } catch {} }
       container.querySelectorAll('iframe').forEach(el => el.remove());
-
-      // ── Prejoin bypass (sama seperti peserta) ──
-      var _alreadyJoined = false;
-      var _bypassInterval = null;
-
-      function _sendBypass(iframe) {
-        if (!iframe || _alreadyJoined) return;
-        try { iframe.contentWindow.postMessage({ name: 'join-conference' }, '*'); } catch {}
-        try { iframe.contentWindow.postMessage(JSON.stringify({ action: 'join-conference' }), '*'); } catch {}
-      }
-
-      function _clickJoinBtn(iframe) {
-        if (!iframe || _alreadyJoined) return;
-        try {
-          var doc = iframe.contentDocument || iframe.contentWindow.document;
-          var sels = [
-            '[data-testid="prejoin.joinMeeting"]',
-            '.prejoin-button-join',
-            'button[class*="join"]',
-            'button[class*="Join"]',
-            '.premeeting-screen button',
-          ];
-          for (var s of sels) { var b = doc.querySelector(s); if (b) { b.click(); return; } }
-        } catch {}
-      }
-
-      function _startBypass() {
-        if (_bypassInterval) return;
-        // Buat overlay transparan di atas area tombol Join meeting
-        // Koordinat tombol Join di 8x8.vc: kira-kira tengah-bawah iframe
-        var overlay = document.createElement('div');
-        overlay.id = 'lm-admin-join-overlay';
-        overlay.style.cssText = [
-          'position:absolute',
-          'left:50%',
-          'top:55%',
-          'transform:translate(-50%,-50%)',
-          'width:220px',
-          'height:52px',
-          'z-index:9999',
-          'cursor:pointer',
-          'background:transparent',
-        ].join(';');
-        container.style.position = 'relative';
-        container.appendChild(overlay);
-
-        var attempts = 0;
-        _bypassInterval = setInterval(function() {
-          if (_alreadyJoined) {
-            clearInterval(_bypassInterval); _bypassInterval = null;
-            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            return;
-          }
-          // Simulasi klik di koordinat tombol Join meeting dalam iframe
-          var rect = container.getBoundingClientRect();
-          var cx = rect.left + rect.width  * 0.5;
-          var cy = rect.top  + rect.height * 0.55;
-          var iframe = container.querySelector('iframe');
-          if (iframe) {
-            // Dispatch mouse event ke iframe element itu sendiri
-            ['mousedown','mouseup','click'].forEach(function(type) {
-              var ev = new MouseEvent(type, {
-                bubbles: true, cancelable: true,
-                clientX: cx, clientY: cy,
-                view: window
-              });
-              iframe.dispatchEvent(ev);
-            });
-            // Juga coba postMessage format 8x8 remote-control
-            try {
-              iframe.contentWindow.postMessage(
-                JSON.stringify({ postis: true, scope: 'jitsi-remote-control', method: 'join-meeting', params: {} }),
-                '*'
-              );
-            } catch {}
-          }
-          if (++attempts >= 40) { clearInterval(_bypassInterval); _bypassInterval = null; }
-        }, 800);
-      }
-
       jitsiAPI = new JitsiMeetExternalAPI(roomData.domain, options);
 
-      // Patch iframe src — tambah config fragment agar 8x8.vc skip prejoin
-      setTimeout(function() {
-        var iframe = container.querySelector('iframe');
-        if (iframe && iframe.src) {
-          var src = iframe.src;
-          // Tambah config.prejoinPageEnabled=false ke URL jika belum ada
-          if (!src.includes('prejoinPageEnabled')) {
-            var sep = src.includes('#') ? '&' : '#';
-            iframe.src = src + sep + 'config.prejoinPageEnabled=false&config.prejoinConfig.enabled=false';
-            console.log('[admin] iframe src patched');
-          }
-        }
-      }, 300);
-
-      _startBypass();
-
       jitsiAPI.addEventListener('videoConferenceJoined', () => {
-        _alreadyJoined = true;
-        if (_bypassInterval) { clearInterval(_bypassInterval); _bypassInterval = null; }
         loading.classList.add('hidden');
         showToast('Berhasil masuk sebagai pengawas!', 'success');
-      });
-
-      // Admin keluar room (klik hangup di Jitsi) → kirim idle, reset UI
-      jitsiAPI.addEventListener('videoConferenceLeft', async () => {
-        const leftRoom = (roomData && roomData.room) || _lastRoom;
-        if (leftRoom) {
-          try {
-            await fetch(BASE_API + '/signal', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: 'admin-status', room: leftRoom, sender: 'admin', status: 'idle' }),
-            });
-          } catch {}
-        }
-        // Reset state room
-        roomData = null;
-        adminStatus = 'idle';
-        clearInterval(pollInterval); pollInterval = null;
-        document.getElementById('btn-available').classList.remove('active-available');
-        document.getElementById('btn-broadcast').classList.remove('active-broadcast');
-        document.getElementById('room-active-tag').style.display = 'none';
-        document.getElementById('admin-no-room').classList.remove('hidden');
-        updateMyStatusUI('idle');
-        showToast('Anda telah keluar dari room. Status: Tidak aktif.', 'info');
-      });
-
-      // Notifikasi saat ada pesan masuk dari peserta
-      jitsiAPI.addEventListener('incomingMessage', ({ from, message, privateMessage }) => {
-        const label = privateMessage ? `🔒 Pesan privat dari ${from}` : `💬 ${from}`;
-        showToast(`${label}: ${(message || '').substring(0, 50)}`, 'info');
       });
 
       jitsiAPI.addEventListener('participantJoined', (e) => {
@@ -1044,7 +879,6 @@
     if (data.camOffCount !== undefined) {
       document.getElementById('stat-cam-off').textContent = data.camOffCount;
     }
-    // Chat ditangani Jitsi built-in — tidak perlu proses dari sinyal
   }
 
   function renderQueue() {

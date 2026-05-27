@@ -50,7 +50,6 @@
   let _uiInjected        = false;
   let _pipAutoCloseTimer = null;
   let _adminParticipantId = null; // Jitsi participant ID milik pengawas
-  let _joinedAt           = null; // timestamp saat berhasil join (untuk filter history replay)
 
   /* ══════════════════════════════════════════════════
      CSS
@@ -253,11 +252,6 @@
         opacity: 1 !important;
         pointer-events: all !important;
       }
-      /* Saat chat terbuka, iframe dimulai dari bawah close bar */
-      #lm-jitsi-wrap.lm-chat-open #lm-jitsi-container {
-        height: calc(100vh - 44px) !important;
-        margin-top: 44px;
-      }
       #lm-jitsi-container { width: 100%; height: 100%; }
 
       /* ── CHAT CLOSE BAR ── */
@@ -299,12 +293,13 @@
         top: 44px; left: 315px; right: 0; bottom: 0;
         z-index: 99996;
         background: #0b0f1a;
-        display: none;
+        display: none; /* ditampilkan saat overlay chat terbuka */
         align-items: center; justify-content: center;
         flex-direction: column; gap: 12px;
         color: #3d5170; font-family: var(--lm-font-body); font-size: 14px;
         pointer-events: all;
       }
+      /* Mobile: chat Jitsi fullscreen, tidak perlu block */
       @media (max-width: 600px) {
         #lm-video-block { display: none !important; }
       }
@@ -821,7 +816,7 @@
     document.getElementById('lm-lobby-overlay').classList.add('lm-hidden');
     document.getElementById('lm-loading-screen').classList.add('lm-show');
     document.getElementById('lm-pip-widget').classList.add('lm-visible');
-    // Timer badge disembunyikan (tidak ditampilkan ke peserta)
+    document.getElementById('lm-timer-badge').classList.add('lm-show');
 
     meetStart     = Date.now();
     timerInterval = setInterval(updateTimer, 1000);
@@ -974,8 +969,6 @@
         hideLoadingScreen();
         showToast('✅ Terhubung ke ruang ujian.', 'success');
         try { jitsiAPI.executeCommand('setAudioMuted', true); } catch {}
-        // Tandai waktu join — pesan dalam 5 detik pertama diabaikan (history replay)
-        _joinedAt = Date.now();
       });
 
       // Lacak participant → cari ID admin (displayName mengandung "[Pengawas]")
@@ -1004,9 +997,7 @@
       });
 
       // Event: pesan masuk dari Jitsi chat → tampilkan notifikasi di tombol PiP
-      // Abaikan pesan dalam 5 detik pertama setelah join (history replay)
       jitsiAPI.addEventListener('incomingMessage', ({ from, message, privateMessage }) => {
-        if (_joinedAt && Date.now() - _joinedAt < 5000) return;
         const btn = document.getElementById('lm-btn-chat');
         if (btn) {
           btn.classList.add('lm-has-unread');
@@ -1095,7 +1086,7 @@
 
     window.location.hash = '';
     clearSession();
-    roomData = null; myName = ''; handRaised = false; micEnabled = false; _adminParticipantId = null; _joinedAt = null;
+    roomData = null; myName = ''; handRaised = false; micEnabled = false; _adminParticipantId = null;
   }
 
   /* ══════════════════════════════════════════════════
@@ -1104,8 +1095,6 @@
      - Klik di luar panel tutup
   ══════════════════════════════════════════════════ */
   function openPipPanel() {
-    // Jika admin idle, jangan tampilkan panel sama sekali
-    if (adminStatus === 'idle') return;
     const panel = document.getElementById('lm-pip-panel');
     const box   = document.getElementById('lm-pip-box');
     panel.classList.add('lm-open');
@@ -1303,6 +1292,9 @@
     if (wrap) wrap.classList.add('lm-chat-open');
     if (bar)  bar.classList.add('lm-show');
     if (btn)  { btn.classList.remove('lm-has-unread'); btn.textContent = '✕ Tutup Chat'; }
+    // Beri ruang atas agar tidak tertutup close bar (44px)
+    const container = document.getElementById('lm-jitsi-container');
+    if (container) container.style.paddingTop = '44px';
 
     // Pasang video-block overlay (menutupi area non-chat)
     const vb = document.getElementById('lm-video-block');
@@ -1339,6 +1331,8 @@
     if (wrap) wrap.classList.remove('lm-chat-open');
     if (bar)  bar.classList.remove('lm-show');
     if (btn)  btn.textContent = '💬 Chat';
+    const container = document.getElementById('lm-jitsi-container');
+    if (container) container.style.paddingTop = '';
     // Sembunyikan video block overlay
     const vb = document.getElementById('lm-video-block');
     if (vb) vb.style.display = 'none';

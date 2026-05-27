@@ -50,7 +50,6 @@
   let _uiInjected        = false;
   let _pipAutoCloseTimer = null;
   let _adminParticipantId = null; // Jitsi participant ID milik pengawas
-  let _joinedAt           = null; // timestamp saat berhasil join (untuk filter history replay)
 
   /* ══════════════════════════════════════════════════
      CSS
@@ -821,7 +820,7 @@
     document.getElementById('lm-lobby-overlay').classList.add('lm-hidden');
     document.getElementById('lm-loading-screen').classList.add('lm-show');
     document.getElementById('lm-pip-widget').classList.add('lm-visible');
-    // Timer badge disembunyikan (tidak ditampilkan ke peserta)
+    document.getElementById('lm-timer-badge').classList.add('lm-show');
 
     meetStart     = Date.now();
     timerInterval = setInterval(updateTimer, 1000);
@@ -974,8 +973,6 @@
         hideLoadingScreen();
         showToast('✅ Terhubung ke ruang ujian.', 'success');
         try { jitsiAPI.executeCommand('setAudioMuted', true); } catch {}
-        // Tandai waktu join — pesan dalam 5 detik pertama diabaikan (history replay)
-        _joinedAt = Date.now();
       });
 
       // Lacak participant → cari ID admin (displayName mengandung "[Pengawas]")
@@ -1004,9 +1001,7 @@
       });
 
       // Event: pesan masuk dari Jitsi chat → tampilkan notifikasi di tombol PiP
-      // Abaikan pesan dalam 5 detik pertama setelah join (history replay)
       jitsiAPI.addEventListener('incomingMessage', ({ from, message, privateMessage }) => {
-        if (_joinedAt && Date.now() - _joinedAt < 5000) return;
         const btn = document.getElementById('lm-btn-chat');
         if (btn) {
           btn.classList.add('lm-has-unread');
@@ -1095,7 +1090,7 @@
 
     window.location.hash = '';
     clearSession();
-    roomData = null; myName = ''; handRaised = false; micEnabled = false; _adminParticipantId = null; _joinedAt = null;
+    roomData = null; myName = ''; handRaised = false; micEnabled = false; _adminParticipantId = null;
   }
 
   /* ══════════════════════════════════════════════════
@@ -1104,8 +1099,6 @@
      - Klik di luar panel tutup
   ══════════════════════════════════════════════════ */
   function openPipPanel() {
-    // Jika admin idle, jangan tampilkan panel sama sekali
-    if (adminStatus === 'idle') return;
     const panel = document.getElementById('lm-pip-panel');
     const box   = document.getElementById('lm-pip-box');
     panel.classList.add('lm-open');

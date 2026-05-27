@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lidan Meet — Ruang Ujian</title>
+  <title>Lidan Meet — Ruang Ujian [proposal]</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
@@ -687,7 +687,7 @@
   /* ══════════════════════════════════════════════════
      CONFIG
   ══════════════════════════════════════════════════ */
-  const BASE_API = 'https://lidan.co.id/api';
+  const BASE_API = 'https://tabi.my.id/api/proposal';
   const API_READ  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
   const AUTH_KEY  = 'admin';
   const SIGNAL_POLL_MS = 2500;
@@ -845,7 +845,7 @@
     // Load Jitsi script dinamis jika belum ada
     if (typeof JitsiMeetExternalAPI === 'undefined') {
       const s = document.createElement('script');
-      s.src = 'https://8x8.vc/vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3/external_api.js';
+      s.src = 'https://8x8.vc/vpaas-magic-cookie-a56106f2fccd4aba85b832528e53d48a/external_api.js';
       s.onload = () => tryEmbed();
       document.head.appendChild(s);
     }
@@ -1021,7 +1021,6 @@
           type,
           room: roomData?.room,
           sender: myName,
-          account: roomData?.account || 'default',
           ...payload,
         }),
       });
@@ -1037,9 +1036,8 @@
   async function pollSignal() {
     if (!roomData) return;
     try {
-      const acc = roomData.account || 'default';
       const res = await fetch(
-        `${BASE_API}/signal?account=${encodeURIComponent(acc)}&room=${encodeURIComponent(roomData.room)}&participant=${encodeURIComponent(myName)}`
+        `${BASE_API}/signal?room=${encodeURIComponent(roomData.room)}&participant=${encodeURIComponent(myName)}`
       );
       const data = await res.json();
       if (!data.success) return;

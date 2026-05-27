@@ -734,7 +734,6 @@
           startWithAudioMuted: true,
           startWithVideoMuted: false,
           prejoinPageEnabled: false,
-          prejoinConfig: { enabled: false },
           enableWelcomePage: false,
           disableModeratorIndicator: false,
           // Admin bisa lihat SEMUA peserta (filmstrip on)
@@ -756,107 +755,9 @@
 
       if (jitsiAPI) { try { jitsiAPI.dispose(); } catch {} }
       container.querySelectorAll('iframe').forEach(el => el.remove());
-
-      // ── Prejoin bypass (sama seperti peserta) ──
-      var _alreadyJoined = false;
-      var _bypassInterval = null;
-
-      function _sendBypass(iframe) {
-        if (!iframe || _alreadyJoined) return;
-        try { iframe.contentWindow.postMessage({ name: 'join-conference' }, '*'); } catch {}
-        try { iframe.contentWindow.postMessage(JSON.stringify({ action: 'join-conference' }), '*'); } catch {}
-      }
-
-      function _clickJoinBtn(iframe) {
-        if (!iframe || _alreadyJoined) return;
-        try {
-          var doc = iframe.contentDocument || iframe.contentWindow.document;
-          var sels = [
-            '[data-testid="prejoin.joinMeeting"]',
-            '.prejoin-button-join',
-            'button[class*="join"]',
-            'button[class*="Join"]',
-            '.premeeting-screen button',
-          ];
-          for (var s of sels) { var b = doc.querySelector(s); if (b) { b.click(); return; } }
-        } catch {}
-      }
-
-      function _startBypass() {
-        if (_bypassInterval) return;
-        // Buat overlay transparan di atas area tombol Join meeting
-        // Koordinat tombol Join di 8x8.vc: kira-kira tengah-bawah iframe
-        var overlay = document.createElement('div');
-        overlay.id = 'lm-admin-join-overlay';
-        overlay.style.cssText = [
-          'position:absolute',
-          'left:50%',
-          'top:55%',
-          'transform:translate(-50%,-50%)',
-          'width:220px',
-          'height:52px',
-          'z-index:9999',
-          'cursor:pointer',
-          'background:transparent',
-        ].join(';');
-        container.style.position = 'relative';
-        container.appendChild(overlay);
-
-        var attempts = 0;
-        _bypassInterval = setInterval(function() {
-          if (_alreadyJoined) {
-            clearInterval(_bypassInterval); _bypassInterval = null;
-            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            return;
-          }
-          // Simulasi klik di koordinat tombol Join meeting dalam iframe
-          var rect = container.getBoundingClientRect();
-          var cx = rect.left + rect.width  * 0.5;
-          var cy = rect.top  + rect.height * 0.55;
-          var iframe = container.querySelector('iframe');
-          if (iframe) {
-            // Dispatch mouse event ke iframe element itu sendiri
-            ['mousedown','mouseup','click'].forEach(function(type) {
-              var ev = new MouseEvent(type, {
-                bubbles: true, cancelable: true,
-                clientX: cx, clientY: cy,
-                view: window
-              });
-              iframe.dispatchEvent(ev);
-            });
-            // Juga coba postMessage format 8x8 remote-control
-            try {
-              iframe.contentWindow.postMessage(
-                JSON.stringify({ postis: true, scope: 'jitsi-remote-control', method: 'join-meeting', params: {} }),
-                '*'
-              );
-            } catch {}
-          }
-          if (++attempts >= 40) { clearInterval(_bypassInterval); _bypassInterval = null; }
-        }, 800);
-      }
-
       jitsiAPI = new JitsiMeetExternalAPI(roomData.domain, options);
 
-      // Patch iframe src — tambah config fragment agar 8x8.vc skip prejoin
-      setTimeout(function() {
-        var iframe = container.querySelector('iframe');
-        if (iframe && iframe.src) {
-          var src = iframe.src;
-          // Tambah config.prejoinPageEnabled=false ke URL jika belum ada
-          if (!src.includes('prejoinPageEnabled')) {
-            var sep = src.includes('#') ? '&' : '#';
-            iframe.src = src + sep + 'config.prejoinPageEnabled=false&config.prejoinConfig.enabled=false';
-            console.log('[admin] iframe src patched');
-          }
-        }
-      }, 300);
-
-      _startBypass();
-
       jitsiAPI.addEventListener('videoConferenceJoined', () => {
-        _alreadyJoined = true;
-        if (_bypassInterval) { clearInterval(_bypassInterval); _bypassInterval = null; }
         loading.classList.add('hidden');
         showToast('Berhasil masuk sebagai pengawas!', 'success');
       });

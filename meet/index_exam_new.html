@@ -1021,7 +1021,6 @@
           type,
           room: roomData?.room,
           sender: myName,
-          account: roomData?.account || 'default',
           ...payload,
         }),
       });
@@ -1037,9 +1036,8 @@
   async function pollSignal() {
     if (!roomData) return;
     try {
-      const acc = roomData.account || 'default';
       const res = await fetch(
-        `${BASE_API}/signal?account=${encodeURIComponent(acc)}&room=${encodeURIComponent(roomData.room)}&participant=${encodeURIComponent(myName)}`
+        `${BASE_API}/signal?room=${encodeURIComponent(roomData.room)}&participant=${encodeURIComponent(myName)}`
       );
       const data = await res.json();
       if (!data.success) return;
