@@ -1,2 +1,2 @@
 floating-menu.js :
-<script src="meet.lidan.co.id/meet/floating-menu.js"></script>
+<script src="https://meet.lidan.co.id/inject/floating-menu.js"></script>
