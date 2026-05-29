@@ -1,16 +1,11 @@
-
 (function () {
-  if (document.getElementById('__floatMenuOverlay')) return;
+  if (document.getElementById('__floatMenuBtn')) return;
 
   // =============================================
   //  KONFIGURASI MENU — tambah/kurang di sini
   // =============================================
   const menuItems = [
-    {
-      label: 'Psikotest JSON New',
-      url: 'https://admin.lidan.co.id/admin/psikotest_json_new',
-      icon: '🧠',
-    },
+    { label: 'Psikotest JSON New', url: 'https://admin.lidan.co.id/admin/psikotest_json_new', icon: '🧠' },
     // Tambahkan menu di bawah ini:
     // { label: 'Nama Menu', url: 'https://...', icon: '📋' },
     // { label: 'Dashboard', url: 'https://example.com/dashboard', icon: '📊' },
@@ -18,29 +13,33 @@
   ];
   // =============================================
 
+  const STORAGE_KEY = '__floatMenuPos';
+  const BTN_SIZE = 52;
+
   const css = `
     #__floatMenuBtn {
       position: fixed;
-      bottom: 28px;
-      right: 28px;
       z-index: 2147483640;
-      width: 52px;
-      height: 52px;
+      width: ${BTN_SIZE}px;
+      height: ${BTN_SIZE}px;
       border-radius: 50%;
       background: #1a56db;
       border: none;
-      cursor: pointer;
+      cursor: grab;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 5px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.28);
-      transition: background 0.18s, transform 0.15s;
       outline: none;
+      touch-action: none;
+      user-select: none;
+      transition: background 0.18s, box-shadow 0.15s;
     }
-    #__floatMenuBtn:hover { background: #1648c2; transform: scale(1.07); }
+    #__floatMenuBtn:hover { background: #1648c2; }
     #__floatMenuBtn.active { background: #374151; }
+    #__floatMenuBtn.dragging { cursor: grabbing; box-shadow: 0 8px 28px rgba(0,0,0,0.38); background: #1648c2; }
     #__floatMenuBtn span {
       display: block;
       width: 22px;
@@ -49,6 +48,7 @@
       border-radius: 2px;
       transition: transform 0.25s, opacity 0.2s;
       transform-origin: center;
+      pointer-events: none;
     }
     #__floatMenuBtn.active span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
     #__floatMenuBtn.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
@@ -56,8 +56,6 @@
 
     #__floatDropdown {
       position: fixed;
-      bottom: 92px;
-      right: 28px;
       z-index: 2147483641;
       background: #fff;
       border-radius: 14px;
@@ -67,12 +65,12 @@
       display: none;
       flex-direction: column;
       border: 1px solid rgba(0,0,0,0.08);
-      animation: __menuSlideUp 0.18s ease;
+      animation: __menuSlideIn 0.18s ease;
     }
     #__floatDropdown.open { display: flex; }
-    @keyframes __menuSlideUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    @keyframes __menuSlideIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
     }
     .__menuItem {
       display: flex;
@@ -153,11 +151,42 @@
   styleEl.textContent = css;
   document.head.appendChild(styleEl);
 
+  // --- Posisi awal (dari localStorage atau default kanan bawah) ---
+  function loadPos() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return {
+      right: 28,
+      bottom: 28,
+    };
+  }
+
+  function savePos(left, top) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, top })); } catch(e) {}
+  }
+
+  function applyPos(el, pos) {
+    if (pos.left !== undefined) {
+      el.style.left = pos.left + 'px';
+      el.style.top  = pos.top  + 'px';
+      el.style.right  = 'auto';
+      el.style.bottom = 'auto';
+    } else {
+      el.style.right  = pos.right  + 'px';
+      el.style.bottom = pos.bottom + 'px';
+      el.style.left = 'auto';
+      el.style.top  = 'auto';
+    }
+  }
+
   // Burger button
   const btn = document.createElement('button');
   btn.id = '__floatMenuBtn';
   btn.setAttribute('aria-label', 'Buka menu');
   btn.innerHTML = '<span></span><span></span><span></span>';
+  applyPos(btn, loadPos());
   document.body.appendChild(btn);
 
   // Dropdown
@@ -180,14 +209,156 @@
       <span id="__iframeTitle">Loading…</span>
       <button id="__iframeCloseBtn" aria-label="Tutup">✕</button>
     </div>
-    <iframe id="__floatIframe" id="__floatIframe" allowfullscreen></iframe>
+    <iframe id="__floatIframe" allowfullscreen></iframe>
   `;
   document.body.appendChild(overlay);
 
-  const iframeEl = overlay.querySelector('#__floatIframe');
-  const titleEl = overlay.querySelector('#__iframeTitle');
-  const closeBtn = overlay.querySelector('#__iframeCloseBtn');
+  const iframeEl  = overlay.querySelector('#__floatIframe');
+  const titleEl   = overlay.querySelector('#__iframeTitle');
+  const closeBtn  = overlay.querySelector('#__iframeCloseBtn');
 
+  // =============================================
+  //  DRAG LOGIC
+  // =============================================
+  let isDragging = false;
+  let dragMoved  = false;
+  let startX, startY, startLeft, startTop;
+
+  function getBtnLeft() { return btn.getBoundingClientRect().left; }
+  function getBtnTop()  { return btn.getBoundingClientRect().top; }
+
+  function onDragStart(clientX, clientY) {
+    isDragging = true;
+    dragMoved  = false;
+    startX    = clientX;
+    startY    = clientY;
+    startLeft = getBtnLeft();
+    startTop  = getBtnTop();
+    btn.classList.add('dragging');
+    // Pindah ke left/top supaya drag akurat
+    btn.style.left   = startLeft + 'px';
+    btn.style.top    = startTop  + 'px';
+    btn.style.right  = 'auto';
+    btn.style.bottom = 'auto';
+  }
+
+  function onDragMove(clientX, clientY) {
+    if (!isDragging) return;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    if (!dragMoved) return;
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let newLeft = startLeft + dx;
+    let newTop  = startTop  + dy;
+
+    // Clamp dalam viewport
+    newLeft = Math.max(0, Math.min(vw - BTN_SIZE, newLeft));
+    newTop  = Math.max(0, Math.min(vh - BTN_SIZE, newTop));
+
+    btn.style.left = newLeft + 'px';
+    btn.style.top  = newTop  + 'px';
+    repositionDropdown();
+  }
+
+  function onDragEnd(clientX, clientY) {
+    if (!isDragging) return;
+    isDragging = false;
+    btn.classList.remove('dragging');
+
+    const left = parseFloat(btn.style.left);
+    const top  = parseFloat(btn.style.top);
+
+    // Snap ke tepi terdekat
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const snapMargin = 16;
+    let finalLeft = left;
+    let finalTop  = top;
+
+    const distLeft   = left;
+    const distRight  = vw - left - BTN_SIZE;
+    const distTop    = top;
+    const distBottom = vh - top  - BTN_SIZE;
+    const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+
+    if (minDist === distLeft)        finalLeft = snapMargin;
+    else if (minDist === distRight)  finalLeft = vw - BTN_SIZE - snapMargin;
+    else if (minDist === distTop)    finalTop  = snapMargin;
+    else                             finalTop  = vh - BTN_SIZE - snapMargin;
+
+    btn.style.left = finalLeft + 'px';
+    btn.style.top  = finalTop  + 'px';
+    savePos(finalLeft, finalTop);
+    repositionDropdown();
+  }
+
+  // Mouse events
+  btn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    onDragStart(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup',   (e) => {
+    const wasDragged = dragMoved;
+    onDragEnd(e.clientX, e.clientY);
+    if (!wasDragged) toggleDropdown();
+  });
+
+  // Touch events
+  btn.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    onDragStart(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    onDragMove(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    const wasDragged = dragMoved;
+    onDragEnd(t.clientX, t.clientY);
+    if (!wasDragged) toggleDropdown();
+  });
+
+  // =============================================
+  //  POSISI DROPDOWN mengikuti tombol
+  // =============================================
+  function repositionDropdown() {
+    if (!dropdown.classList.contains('open')) return;
+    positionDropdown();
+  }
+
+  function positionDropdown() {
+    const btnRect = btn.getBoundingClientRect();
+    const ddW = dropdown.offsetWidth  || 230;
+    const ddH = dropdown.offsetHeight || 100;
+    const vw  = window.innerWidth;
+    const vh  = window.innerHeight;
+    const gap = 10;
+
+    // Coba tampil di atas tombol
+    let top  = btnRect.top - ddH - gap;
+    let left = btnRect.left + BTN_SIZE / 2 - ddW / 2;
+
+    // Kalau keluar atas, tampil di bawah
+    if (top < 8) top = btnRect.bottom + gap;
+    // Clamp horizontal
+    left = Math.max(8, Math.min(vw - ddW - 8, left));
+    // Clamp vertical
+    top  = Math.max(8, Math.min(vh - ddH - 8, top));
+
+    dropdown.style.left   = left + 'px';
+    dropdown.style.top    = top  + 'px';
+    dropdown.style.right  = 'auto';
+    dropdown.style.bottom = 'auto';
+  }
+
+  // =============================================
+  //  MENU FUNCTIONS
+  // =============================================
   function openIframe(url, label) {
     iframeEl.src = url;
     titleEl.textContent = label;
@@ -201,15 +372,14 @@
   }
 
   function toggleDropdown() {
-    const isOpen = dropdown.classList.contains('open');
-    if (isOpen) closeDropdown();
-    else openDropdown();
+    dropdown.classList.contains('open') ? closeDropdown() : openDropdown();
   }
 
   function openDropdown() {
     dropdown.classList.add('open');
     btn.classList.add('active');
     btn.setAttribute('aria-label', 'Tutup menu');
+    positionDropdown();
   }
 
   function closeDropdown() {
@@ -218,11 +388,10 @@
     btn.setAttribute('aria-label', 'Buka menu');
   }
 
-  btn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
   closeBtn.addEventListener('click', closeOverlay);
 
   document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && e.target !== btn) closeDropdown();
+    if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) closeDropdown();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -231,4 +400,19 @@
       else closeDropdown();
     }
   });
+
+  window.addEventListener('resize', () => {
+    // Clamp posisi supaya tidak keluar layar saat resize
+    const left = parseFloat(btn.style.left) || 0;
+    const top  = parseFloat(btn.style.top)  || 0;
+    const vw   = window.innerWidth;
+    const vh   = window.innerHeight;
+    const newLeft = Math.max(0, Math.min(vw - BTN_SIZE, left));
+    const newTop  = Math.max(0, Math.min(vh - BTN_SIZE, top));
+    btn.style.left = newLeft + 'px';
+    btn.style.top  = newTop  + 'px';
+    savePos(newLeft, newTop);
+    repositionDropdown();
+  });
+
 })();
