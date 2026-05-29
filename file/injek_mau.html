@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JaaS Seeder — Insert Data Akun</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0e14;--bg2:#13161f;--bg3:#1a1e2a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaf0;--muted:#6b7280;
+  --accent:#4f8ef7;--accent2:#3b6fd4;
+  --green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --mono:'IBM Plex Mono',monospace;--sans:'Plus Jakarta Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1.5rem;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto}
+h1{font-size:24px;font-weight:700;color:#fff;letter-spacing:-.4px;margin-bottom:4px}
+h1 span{color:var(--accent)}
+.sub{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:2rem}
+.warn-box{
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);
+  border-radius:10px;padding:14px 18px;font-size:13px;color:#fbbf24;
+  margin-bottom:1.5rem;line-height:1.7;
+}
+.warn-box strong{color:#fde68a;display:block;margin-bottom:4px;font-size:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.5rem}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-title{font-size:14px;font-weight:700;color:#fff}
+.card-sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;overflow:hidden}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--bg3)}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden}
+tbody tr:last-child td{border-bottom:none}
+.col-no{width:40px}
+.col-nama{width:100px}
+.col-email{width:210px}
+.col-appid{width:auto}
+.col-stat{width:90px;text-align:center}
+
+/* ellipsis + tooltip */
+.ell-wrap{position:relative;display:inline-block;max-width:100%}
+.ell{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.ell-wrap:hover .tip{opacity:1;visibility:visible;transform:translateY(0)}
+.tip{
+  position:absolute;left:0;top:calc(100% + 6px);
+  background:#1e2332;border:1px solid var(--border2);border-radius:8px;
+  padding:8px 12px;font-size:12px;font-family:var(--mono);color:var(--text);
+  white-space:normal;word-break:break-all;max-width:480px;z-index:99;
+  opacity:0;visibility:hidden;transform:translateY(4px);
+  transition:all .15s ease;box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;
+}
+.tip::before{content:'';position:absolute;top:-5px;left:12px;width:8px;height:8px;background:#1e2332;border-left:1px solid var(--border2);border-top:1px solid var(--border2);transform:rotate(45deg)}
+
+.mono{font-family:var(--mono);font-size:12px}
+.muted{color:var(--muted)}
+.blue{color:#93c5fd}
+.name{font-weight:600;color:#fff}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.badge-pending{background:rgba(107,114,128,.2);color:#9ca3af;border:1px solid rgba(107,114,128,.3)}
+.badge-ok{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.badge-err{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.badge-skip{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent2)}
+.btn-primary:not(:disabled):hover{background:var(--accent2)}
+.btn-ghost{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-ghost:not(:disabled):hover{background:var(--bg2)}
+.btn-danger{background:transparent;color:#f87171;border-color:rgba(239,68,68,.35)}
+.btn-danger:not(:disabled):hover{background:rgba(239,68,68,.1)}
+
+.log-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:16px;font-family:var(--mono);font-size:12px;color:var(--muted);
+  max-height:200px;overflow-y:auto;line-height:1.8;margin-top:1rem;
+}
+.log-ok{color:var(--green)}
+.log-err{color:#f87171}
+.log-info{color:var(--accent)}
+.log-skip{color:var(--amber)}
+
+.progress-outer{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-inner{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+
+.summary-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:1rem;font-size:13px}
+.sum-item{display:flex;align-items:center;gap:6px}
+.sum-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>JaaS <span>Seeder</span></h1>
+  <p class="sub">jaas-seeder.html — insert data 13 akun ke tabel <strong>jaas</strong> via API</p>
+
+  <div class="warn-box">
+    <strong>⚠ Peringatan — Baca Sebelum Jalankan</strong>
+    Tombol <em>"Cek Duplikat & Insert"</em> akan memeriksa apakah nama akun sudah ada di database. Jika sudah ada, baris tersebut dilewati (<em>skip</em>). Jika belum ada, data baru akan disisipkan. Gunakan <em>"Hapus Semua Lalu Insert Ulang"</em> hanya jika ingin reset total tabel <code>jaas</code>.
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Data 13 Akun JaaS</div>
+        <div class="card-sub">x_01=nama · x_02=email · x_03=app_id · x_04=mau_awal(0)</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="checkDuplicate()" id="btnCek">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Cek Duplikat Dulu
+        </button>
+        <button class="btn btn-primary" onclick="insertSmart()" id="btnInsert">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Cek Duplikat &amp; Insert
+        </button>
+        <button class="btn btn-danger" onclick="deleteAllThenInsert()" id="btnReset">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+          Hapus Semua Lalu Insert Ulang
+        </button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto">
+    <table>
+      <colgroup>
+        <col class="col-no"><col class="col-nama">
+        <col class="col-email"><col class="col-appid"><col class="col-stat">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col-no">#</th>
+          <th class="col-nama">Nama</th>
+          <th class="col-email">Email</th>
+          <th class="col-appid">App ID</th>
+          <th class="col-stat">Status</th>
+        </tr>
+      </thead>
+      <tbody id="seedTbody"></tbody>
+    </table>
+    </div>
+
+    <div style="padding:16px 20px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div id="progLabel" style="font-size:12px;color:var(--muted);font-family:var(--mono)">Siap dijalankan</div>
+        <div class="summary-row" id="summaryRow" style="display:none">
+          <div class="sum-item"><div class="sum-dot" style="background:var(--green)"></div><span id="cntOk">0</span> berhasil</div>
+          <div class="sum-item"><div class="sum-dot" style="background:var(--amber)"></div><span id="cntSkip">0</span> dilewati</div>
+          <div class="sum-item"><div class="sum-dot" style="background:var(--red)"></div><span id="cntErr">0</span> error</div>
+        </div>
+      </div>
+      <div class="progress-outer" id="progOuter" style="display:none">
+        <div class="progress-inner" id="progInner" style="width:0%"></div>
+      </div>
+      <div class="log-box" id="logBox" style="display:none"></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+const API   = 'https://cipta-baru.pages.dev/api/contacts_filter_dinamis6';
+const TABLE = 'jaas';
+const H     = { 'Content-Type':'application/json', 'X-Custom-Auth':'admin', 'X-Table-Name':TABLE };
+
+/* ══════════════════════════════════════
+   DATA AKUN — sesuai lampiran pengguna
+   x_01=nama, x_02=email, x_03=app_id, x_04=mau (default 0)
+══════════════════════════════════════ */
+const ACCOUNTS = [
+  {
+    x_01: 'utama',
+    x_02: 'dumeiheri@gmail.com',
+    x_03: 'vpaas-magic-cookie-6a0d4b63e58e420781a516524f2d3fd3',
+    x_04: '0'
+  },
+  {
+    x_01: 'psikologi',
+    x_02: 'lidanpsikologi@gmail.com',
+    x_03: 'vpaas-magic-cookie-02a37da6b5fd47ec8e97d38b711f731b',
+    x_04: '0'
+  },
+  {
+    x_01: 'infolidan',
+    x_02: 'infolidan@gmail.com',
+    x_03: 'vpaas-magic-cookie-49e5290787e944c9843ed26a54104799',
+    x_04: '0'
+  },
+  {
+    x_01: 'cipta',
+    x_02: 'ciptapersadatabi@gmail.com',
+    x_03: 'vpaas-magic-cookie-e51678a69df34f089b9998edae9bf28b',
+    x_04: '0'
+  },
+  {
+    x_01: 'android',
+    x_02: 'dumei.android@gmail.com',
+    x_03: 'vpaas-magic-cookie-071ffa2d64444c98a8ab00d04452e5cf',
+    x_04: '0'
+  },
+  {
+    x_01: 'brosur',
+    x_02: 'lidanindah.brosur@gmail.com',
+    x_03: 'vpaas-magic-cookie-371ffe0989cf44f8bfc1ec78ffd8c5d4',
+    x_04: '0'
+  },
+  {
+    x_01: 'proposal',
+    x_02: 'lidanindah.proposal@gmail.com',
+    x_03: 'vpaas-magic-cookie-a56106f2fccd4aba85b832528e53d48a',
+    x_04: '0'
+  },
+  {
+    x_01: 'produk',
+    x_02: 'lidanindah.produk@gmail.com',
+    x_03: 'vpaas-magic-cookie-bf84a2fbefb44ff7a88d1488c5ed4990',
+    x_04: '0'
+  },
+  {
+    x_01: 'video',
+    x_02: 'lidanindah.video@gmail.com',
+    x_03: 'vpaas-magic-cookie-65ad6387927d4d86ab9f57d0959c75af',
+    x_04: '0'
+  },
+  {
+    x_01: 'form',
+    x_02: 'lidanindah.form@gmail.com',
+    x_03: 'vpaas-magic-cookie-efffd8e2b4ff4669aa591975f3aff0dc',
+    x_04: '0'
+  },
+  {
+    x_01: 'legal',
+    x_02: 'lidanindah.legal@gmail.com',
+    x_03: 'vpaas-magic-cookie-a4535362bd274b5f831a3cfe20eafeca',
+    x_04: '0'
+  },
+  {
+    x_01: 'gambar',
+    x_02: 'lidanindah.gambar@gmail.com',
+    x_03: 'vpaas-magic-cookie-60b8cdbd9e8446deb2c5a78a3f1b8f8f',
+    x_04: '0'
+  }
+];
+
+/* ══════════════════════════════════════
+   STATUS PER BARIS
+══════════════════════════════════════ */
+let rowStatus = ACCOUNTS.map(() => 'pending');
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function ellCell(txt, cls=''){
+  const s=esc(txt||'');
+  return `<div class="ell-wrap"><span class="ell ${cls}">${s}</span><div class="tip">${s}</div></div>`;
+}
+
+function badgeHtml(st){
+  if(st==='ok')   return '<span class="badge badge-ok">✓ Berhasil</span>';
+  if(st==='err')  return '<span class="badge badge-err">✗ Error</span>';
+  if(st==='skip') return '<span class="badge badge-skip">⟳ Dilewati</span>';
+  return '<span class="badge badge-pending">— Pending</span>';
+}
+
+function renderSeedTable(){
+  const tb = document.getElementById('seedTbody');
+  tb.innerHTML = ACCOUNTS.map((a,i) => `
+    <tr id="row-${i}">
+      <td class="mono muted">${i+1}</td>
+      <td><span class="name">${esc(a.x_01)}</span></td>
+      <td>${ellCell(a.x_02, 'blue')}</td>
+      <td>${ellCell(a.x_03, 'mono muted')}</td>
+      <td id="stat-${i}" style="text-align:center">${badgeHtml(rowStatus[i])}</td>
+    </tr>
+  `).join('');
+}
+
+function setRowStat(i, st){ rowStatus[i]=st; document.getElementById('stat-'+i).innerHTML=badgeHtml(st); }
+
+/* ══════════════════════════════════════
+   LOGGING
+══════════════════════════════════════ */
+function initLog(){
+  document.getElementById('logBox').style.display='block';
+  document.getElementById('progOuter').style.display='block';
+  document.getElementById('summaryRow').style.display='flex';
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('cntOk').textContent='0';
+  document.getElementById('cntSkip').textContent='0';
+  document.getElementById('cntErr').textContent='0';
+}
+function addLog(msg, cls=''){
+  const lb=document.getElementById('logBox');
+  lb.innerHTML+=`<div class="${cls}">${msg}</div>`;
+  lb.scrollTop=lb.scrollHeight;
+}
+function setProgress(done, total){
+  const pct=Math.round((done/total)*100);
+  document.getElementById('progInner').style.width=pct+'%';
+  document.getElementById('progLabel').textContent=`Proses ${done}/${total} (${pct}%)`;
+}
+function setButtons(disabled){
+  ['btnCek','btnInsert','btnReset'].forEach(id=>{
+    document.getElementById(id).disabled=disabled;
+  });
+}
+
+/* ══════════════════════════════════════
+   CEK DUPLIKAT (tanpa insert)
+══════════════════════════════════════ */
+async function checkDuplicate(){
+  setButtons(true);
+  initLog();
+  addLog('<span class="log-info">🔍 Memeriksa data di database…</span>');
+  try{
+    const res  = await fetch(`${API}?table=${TABLE}&limit=200`, { headers: H });
+    const json = await res.json();
+    if(!json.success){ addLog('✗ Gagal ambil data: '+(json.error||''), 'log-err'); setButtons(false); return; }
+    const existing = (json.data||[]).map(r=>(r.x_01||'').toLowerCase());
+    let found=0;
+    ACCOUNTS.forEach((a,i)=>{
+      if(existing.includes(a.x_01.toLowerCase())){
+        setRowStat(i,'skip');
+        addLog(`⟳ [${a.x_01}] sudah ada di database — akan dilewati`, 'log-skip');
+        found++;
+      } else {
+        setRowStat(i,'pending');
+        addLog(`— [${a.x_01}] belum ada — siap diinsert`);
+      }
+    });
+    addLog(`<span class="log-info">✔ Cek selesai. ${found} sudah ada, ${ACCOUNTS.length-found} belum ada.</span>`);
+    document.getElementById('progLabel').textContent='Cek duplikat selesai';
+  } catch(e){
+    addLog('✗ Error: '+e.message, 'log-err');
+  }
+  setProgress(ACCOUNTS.length, ACCOUNTS.length);
+  setButtons(false);
+}
+
+/* ══════════════════════════════════════
+   CEK DUPLIKAT + INSERT BARU SAJA
+══════════════════════════════════════ */
+async function insertSmart(){
+  setButtons(true);
+  initLog();
+  rowStatus = ACCOUNTS.map(()=>'pending');
+  renderSeedTable();
+  addLog('<span class="log-info">🔍 Memeriksa duplikat…</span>');
+
+  let existing = [];
+  try{
+    const res  = await fetch(`${API}?table=${TABLE}&limit=200`, { headers: H });
+    const json = await res.json();
+    if(json.success) existing = (json.data||[]).map(r=>(r.x_01||'').toLowerCase());
+    else { addLog('✗ Gagal ambil data existing: '+(json.error||''), 'log-err'); }
+  } catch(e){ addLog('✗ '+e.message,'log-err'); }
+
+  let ok=0,skip=0,err=0;
+  for(let i=0;i<ACCOUNTS.length;i++){
+    const a=ACCOUNTS[i];
+    setProgress(i, ACCOUNTS.length);
+    if(existing.includes(a.x_01.toLowerCase())){
+      setRowStat(i,'skip');
+      addLog(`⟳ [${a.x_01}] sudah ada — dilewati`, 'log-skip');
+      skip++;
+    } else {
+      try{
+        const res  = await fetch(`${API}?table=${TABLE}`,{method:'POST',headers:H,body:JSON.stringify(a)});
+        const json = await res.json();
+        if(json.success){
+          setRowStat(i,'ok');
+          addLog(`✓ [${a.x_01}] berhasil diinsert (id_x=${json.id_x})`, 'log-ok');
+          ok++;
+        } else {
+          setRowStat(i,'err');
+          addLog(`✗ [${a.x_01}] gagal: ${json.message||''}`, 'log-err');
+          err++;
+        }
+      } catch(e){
+        setRowStat(i,'err');
+        addLog(`✗ [${a.x_01}] error: ${e.message}`, 'log-err');
+        err++;
+      }
+    }
+    document.getElementById('cntOk').textContent=ok;
+    document.getElementById('cntSkip').textContent=skip;
+    document.getElementById('cntErr').textContent=err;
+  }
+  setProgress(ACCOUNTS.length, ACCOUNTS.length);
+  addLog(`<span class="log-info">══ Selesai: ${ok} berhasil · ${skip} dilewati · ${err} error ══</span>`);
+  document.getElementById('progLabel').textContent=`Selesai — ${ok} insert · ${skip} skip · ${err} error`;
+  setButtons(false);
+}
+
+/* ══════════════════════════════════════
+   HAPUS SEMUA LALU INSERT ULANG
+══════════════════════════════════════ */
+async function deleteAllThenInsert(){
+  if(!confirm('⚠ PERHATIAN!\n\nIni akan MENGHAPUS SEMUA data di tabel "jaas" lalu memasukkan ulang 13 akun dari awal.\n\nLanjutkan?')) return;
+  setButtons(true);
+  initLog();
+  rowStatus = ACCOUNTS.map(()=>'pending');
+  renderSeedTable();
+  addLog('<span class="log-info">🗑 Mengambil semua data untuk dihapus…</span>');
+
+  /* Ambil semua id lalu hapus satu per satu */
+  try{
+    const res  = await fetch(`${API}?table=${TABLE}&limit=500`, { headers: H });
+    const json = await res.json();
+    if(!json.success){ addLog('✗ Gagal ambil data: '+(json.error||''),'log-err'); setButtons(false); return; }
+    const ids  = (json.data||[]).map(r=>r.id_x);
+    addLog(`<span class="log-info">Ditemukan ${ids.length} baris — menghapus…</span>`);
+    for(const id of ids){
+      try{
+        const dr = await fetch(`${API}?table=${TABLE}&id_x=${id}`,{method:'DELETE',headers:H});
+        const dj = await dr.json();
+        if(dj.success) addLog(`✓ Hapus id_x=${id}`, 'log-ok');
+        else addLog(`✗ Gagal hapus id_x=${id}: ${dj.message||''}`, 'log-err');
+      } catch(e){ addLog(`✗ Error hapus id_x=${id}: ${e.message}`, 'log-err'); }
+    }
+    addLog('<span class="log-info">✔ Hapus selesai. Mulai insert ulang…</span>');
+  } catch(e){ addLog('✗ Error ambil data: '+e.message,'log-err'); setButtons(false); return; }
+
+  /* Insert ulang */
+  let ok=0,err=0;
+  for(let i=0;i<ACCOUNTS.length;i++){
+    const a=ACCOUNTS[i];
+    setProgress(i, ACCOUNTS.length);
+    try{
+      const res  = await fetch(`${API}?table=${TABLE}`,{method:'POST',headers:H,body:JSON.stringify(a)});
+      const json = await res.json();
+      if(json.success){
+        setRowStat(i,'ok');
+        addLog(`✓ [${a.x_01}] berhasil diinsert (id_x=${json.id_x})`, 'log-ok');
+        ok++;
+      } else {
+        setRowStat(i,'err');
+        addLog(`✗ [${a.x_01}] gagal: ${json.message||''}`, 'log-err');
+        err++;
+      }
+    } catch(e){
+      setRowStat(i,'err');
+      addLog(`✗ [${a.x_01}] error: ${e.message}`, 'log-err');
+      err++;
+    }
+    document.getElementById('cntOk').textContent=ok;
+    document.getElementById('cntErr').textContent=err;
+  }
+  setProgress(ACCOUNTS.length, ACCOUNTS.length);
+  addLog(`<span class="log-info">══ Selesai: ${ok} berhasil · ${err} error ══</span>`);
+  document.getElementById('progLabel').textContent=`Selesai — ${ok} insert · ${err} error`;
+  setButtons(false);
+}
+
+/* ══ INIT ══ */
+renderSeedTable();
+</script>
+</body>
+</html>

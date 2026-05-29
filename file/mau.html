@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker MAU JaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e14;
+  --bg2: #13161f;
+  --bg3: #1a1e2a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --accent: #4f8ef7;
+  --accent2: #3b6fd4;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+
+/* ── LOGIN SCREEN ── */
+#loginScreen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:1rem;
+  background: radial-gradient(ellipse at 60% 40%, #131a2e 0%, #0c0e14 70%);
+}
+.login-card {
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:2.5rem 2rem;
+  width:360px;
+  max-width:100%;
+  animation: fadeUp .3s ease;
+}
+.login-logo {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:1.75rem;
+}
+.login-logo-icon {
+  width:44px;height:44px;
+  border-radius:12px;
+  background: linear-gradient(135deg,#4f8ef7,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+.login-logo-text h2{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.login-logo-text p{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.login-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px}
+.login-input{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--border2);
+  border-radius:9px;
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  padding:11px 14px;
+  transition:border .15s;
+  margin-bottom:14px;
+}
+.login-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+.login-input::placeholder{color:var(--muted)}
+.login-btn{
+  width:100%;
+  padding:12px;
+  background:var(--accent);
+  border:none;
+  border-radius:9px;
+  color:#fff;
+  font-family:var(--sans);
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .15s;
+  margin-top:4px;
+}
+.login-btn:hover{background:var(--accent2)}
+.login-btn:active{transform:scale(.98)}
+.login-err{
+  background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.3);
+  border-radius:8px;
+  color:#f87171;
+  font-size:13px;
+  padding:10px 14px;
+  margin-top:12px;
+  display:none;
+  text-align:center;
+}
+.login-err.show{display:block}
+
+/* ── APP SCREEN ── */
+#appScreen{display:none}
+.app{max-width:1300px;margin:0 auto;padding:2rem 1.5rem}
+
+/* ── HEADER ── */
+.header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
+.header-left h1{font-size:26px;font-weight:700;letter-spacing:-.5px;color:#fff}
+.header-left h1 span{color:var(--accent)}
+.header-left p{font-size:13px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.user-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:999px;padding:6px 14px;
+  font-size:12px;color:var(--muted);font-family:var(--mono);
+}
+.user-pill strong{color:var(--text)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent2)}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-ghost:hover{background:var(--bg2)}
+.btn-danger{background:transparent;color:#f87171;border-color:rgba(239,68,68,.35)}
+.btn-danger:hover{background:rgba(239,68,68,.1)}
+.btn-logout{background:transparent;color:var(--muted);border-color:var(--border);font-size:12px;padding:6px 12px}
+.btn-logout:hover{color:#f87171;border-color:rgba(239,68,68,.4)}
+
+/* ── SUMMARY CARDS ── */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.75rem}
+.sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sum-card.blue::before{background:var(--accent)}
+.sum-card.green::before{background:var(--green)}
+.sum-card.amber::before{background:var(--amber)}
+.sum-card.red::before{background:var(--red)}
+.sum-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:6px}
+.sum-val{font-size:30px;font-weight:700;font-family:var(--mono);letter-spacing:-1px}
+.sum-card.blue .sum-val{color:var(--accent)}
+.sum-card.green .sum-val{color:var(--green)}
+.sum-card.amber .sum-val{color:var(--amber)}
+.sum-card.red .sum-val{color:#f87171}
+.sum-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+
+/* ── TABLE ── */
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
+.table-toolbar-title{font-size:13px;font-weight:600;color:var(--muted);font-family:var(--mono)}
+.search-input{background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 12px;width:200px;transition:border .15s}
+.search-input:focus{outline:none;border-color:var(--accent)}
+.search-input::placeholder{color:var(--muted)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+thead th{
+  padding:11px 14px;text-align:left;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+  border-bottom:1px solid var(--border);white-space:nowrap;background:var(--bg2);
+  overflow:hidden;
+}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--bg3)}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden}
+tbody tr:last-child td{border-bottom:none}
+
+/* ── COLUMN WIDTHS ── */
+.col-no    { width: 42px }
+.col-nama  { width: 110px }
+.col-email { width: 180px }
+.col-appid { width: 220px }
+.col-mau   { width: 130px }
+.col-sisa  { width: 70px }
+.col-prog  { width: 150px }
+.col-stat  { width: 100px }
+.col-aksi  { width: 80px }
+
+/* ── ELLIPSIS CELL with TOOLTIP ── */
+.ell {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  position:relative;
+  cursor:default;
+}
+.ell-wrap {
+  position:relative;
+  display:inline-block;
+  max-width:100%;
+}
+.ell-wrap:hover .tooltip {
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+.tooltip {
+  position:absolute;
+  left:0;
+  top:calc(100% + 6px);
+  background:#1e2332;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:8px 12px;
+  font-size:12px;
+  font-family:var(--mono);
+  color:var(--text);
+  white-space:nowrap;
+  max-width:420px;
+  word-break:break-all;
+  white-space:normal;
+  z-index:99;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(4px);
+  transition:all .15s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  pointer-events:none;
+}
+.tooltip::before {
+  content:'';
+  position:absolute;
+  top:-5px;left:12px;
+  width:8px;height:8px;
+  background:#1e2332;
+  border-left:1px solid var(--border2);
+  border-top:1px solid var(--border2);
+  transform:rotate(45deg);
+}
+
+.cell-mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.cell-name{font-weight:600;color:#fff;font-size:13px}
+.cell-email-txt{font-size:12px;color:#93c5fd}
+.cell-appid-txt{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ── MAU INPUT ── */
+.mau-wrap{display:flex;align-items:center;gap:8px}
+.mau-num{width:56px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600;text-align:center;padding:5px;transition:border .15s}
+.mau-num:focus{outline:none;border-color:var(--accent)}
+.mau-mini-btns{display:flex;flex-direction:column;gap:2px}
+.mau-step{width:20px;height:14px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.mau-step:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── PROGRESS ── */
+.progress-wrap{display:flex;align-items:center;gap:8px;min-width:100px}
+.progress-bar{flex:1;height:5px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s ease,background .4s}
+.progress-pct{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:30px;text-align:right}
+
+/* ── BADGE ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.badge-aman{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.badge-warn{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.badge-kritis{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.badge-penuh{background:rgba(220,38,38,.25);color:#fca5a5;border:1px solid rgba(220,38,38,.4)}
+
+/* ── ICON BUTTONS ── */
+.action-wrap{display:flex;gap:5px}
+.icon-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
+.icon-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.icon-btn.edit:hover{color:var(--accent);border-color:rgba(79,142,247,.4)}
+.icon-btn.del:hover{color:#f87171;border-color:rgba(239,68,68,.4)}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:1.75rem;width:440px;max-width:100%;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem}
+.modal-title{font-size:17px;font-weight:700;color:#fff}
+.modal-close{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;transition:border .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+.form-input::placeholder{color:var(--muted)}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.mau-slider-wrap{display:flex;align-items:center;gap:12px}
+.mau-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg3);outline:none;cursor:pointer}
+.mau-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg2);transition:transform .15s}
+.mau-slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.mau-slider-val{font-family:var(--mono);font-size:18px;font-weight:700;min-width:36px;text-align:right;color:var(--accent)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+
+/* ── RESET MODAL ── */
+.reset-icon{width:56px;height:56px;border-radius:14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:1rem}
+.reset-desc{font-size:13px;color:var(--muted);line-height:1.7}
+.reset-desc strong{color:var(--text)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.5);transform:translateY(8px);opacity:0;transition:all .25s ease;pointer-events:none;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toast.ok .toast-dot{background:var(--green)}
+.toast.err .toast-dot{background:var(--red)}
+
+/* ── LOADING ── */
+.loading-row td{padding:3rem!important;text-align:center;color:var(--muted);font-size:13px}
+.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:3rem 1rem}
+.empty-state p{font-size:13px;color:var(--muted);margin-top:8px}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+@media(max-width:640px){.app{padding:1rem}.header-left h1{font-size:20px}.summary{grid-template-columns:1fr 1fr}.search-input{width:140px}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🔐</div>
+      <div class="login-logo-text">
+        <h2>JaaS MAU Tracker</h2>
+        <p>admin access only</p>
+      </div>
+    </div>
+    <label class="login-label">Username</label>
+    <input class="login-input" id="lUser" type="text" placeholder="Masukkan username" autocomplete="username">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="lPass" type="password" placeholder="Masukkan password" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()" id="loginBtn">Masuk</button>
+    <div class="login-err" id="loginErr">Username atau password salah.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SCREEN
+══════════════════════════════════════ -->
+<div id="appScreen">
+<div class="app">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>JaaS <span>MAU</span> Tracker</h1>
+      <p id="curMonth">⬤ memuat...</p>
+    </div>
+    <div class="header-actions">
+      <div class="user-pill" id="userPill">👤 <strong>—</strong></div>
+      <button class="btn btn-ghost" onclick="loadData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-primary" onclick="openAdd()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tambah Akun
+      </button>
+      <button class="btn btn-danger" onclick="openReset()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Reset Bulan Baru
+      </button>
+      <button class="btn btn-logout" onclick="doLogout()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Keluar
+      </button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-card blue"><div class="sum-label">Total Akun</div><div class="sum-val" id="sTotal">—</div><div class="sum-sub">akun terdaftar</div></div>
+    <div class="sum-card blue"><div class="sum-label">Total MAU Terpakai</div><div class="sum-val" id="sUsed">—</div><div class="sum-sub">dari <span id="sMax">—</span> kuota</div></div>
+    <div class="sum-card green"><div class="sum-label">Total MAU Tersisa</div><div class="sum-val" id="sLeft">—</div><div class="sum-sub">sisa bulan ini</div></div>
+    <div class="sum-card amber"><div class="sum-label">Hampir Habis</div><div class="sum-val" id="sWarn">—</div><div class="sum-sub">akun ≥ 60% terpakai</div></div>
+    <div class="sum-card red"><div class="sum-label">Akun Penuh</div><div class="sum-val" id="sFull">—</div><div class="sum-sub">sudah 25 / 25 MAU</div></div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="table-toolbar-title" id="tableCount">— akun</div>
+      <input class="search-input" type="search" id="searchBox" placeholder="Cari akun / email…" oninput="filterTable()">
+    </div>
+    <div class="table-wrap">
+      <table id="mainTable">
+        <colgroup>
+          <col class="col-no"><col class="col-nama"><col class="col-email">
+          <col class="col-appid"><col class="col-mau"><col class="col-sisa">
+          <col class="col-prog"><col class="col-stat"><col class="col-aksi">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="col-no">#</th>
+            <th class="col-nama">Nama Akun</th>
+            <th class="col-email">Email</th>
+            <th class="col-appid">App ID</th>
+            <th class="col-mau" style="text-align:center">MAU Terpakai</th>
+            <th class="col-sisa" style="text-align:center">Tersisa</th>
+            <th class="col-prog">Progress</th>
+            <th class="col-stat">Status</th>
+            <th class="col-aksi">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr class="loading-row"><td colspan="9"><span class="spinner"></span>Menghubungkan ke API...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /app -->
+</div><!-- /appScreen -->
+
+
+<!-- ── MODAL TAMBAH / EDIT ── -->
+<div class="overlay" id="formModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="formTitle">Tambah Akun JaaS</div>
+      <button class="modal-close" onclick="closeForm()">✕</button>
+    </div>
+    <input type="hidden" id="fId">
+    <div class="form-group">
+      <label class="form-label">Nama Akun</label>
+      <input class="form-input" id="fNama" type="text" placeholder="misal: utama, psikologi…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="fEmail" type="email" placeholder="akun@gmail.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">App ID (vpaas-magic-cookie-…)</label>
+      <input class="form-input" id="fAppId" type="text" placeholder="vpaas-magic-cookie-xxxxxxxx…">
+      <div class="form-hint">Salin dari dashboard 8x8 JaaS</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">MAU Terpakai Bulan Ini (maks 25)</label>
+      <div class="mau-slider-wrap">
+        <input type="range" class="mau-slider" id="fSlider" min="0" max="25" value="0" oninput="syncSlider()">
+        <div class="mau-slider-val" id="fSliderVal">0</div>
+        <input type="number" class="form-input" id="fMau" min="0" max="25" value="0" style="width:70px;text-align:center;padding:8px 6px" oninput="syncNumber()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeForm()">Batal</button>
+      <button class="btn btn-primary" onclick="saveRecord()" id="saveBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Simpan
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL RESET ── -->
+<div class="overlay" id="resetModal">
+  <div class="modal">
+    <div class="reset-icon">🔄</div>
+    <div class="modal-title" style="margin-bottom:.75rem">Reset MAU Bulan Baru</div>
+    <p class="reset-desc">Semua MAU terpakai akan direset ke <strong>0</strong>.<br>
+    Jalankan ini di awal setiap bulan ketika kuota JaaS sudah diperbaharui.<br><br>
+    <strong>Tindakan ini tidak dapat dibatalkan.</strong> Lanjutkan?</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeReset()">Batal</button>
+      <button class="btn btn-danger" onclick="doReset()" id="resetBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Ya, Reset Sekarang
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<script>
+/* ═══════════ CONFIG ═══════════ */
+const API     = 'https://cipta-baru.pages.dev/api/contacts_filter_dinamis6';
+const TABLE   = 'jaas';
+const MAX_MAU = 25;
+const H = (extra={}) => Object.assign({'Content-Type':'application/json','X-Custom-Auth':'admin','X-Table-Name':TABLE}, extra);
+
+/* Mapping: x_01=nama, x_02=email, x_03=app_id, x_04=mau_terpakai */
+
+/* ═══════════ STATE ═══════════ */
+let records=[], filtered=[], currentUser='';
+
+/* ═══════════ MONTH ═══════════ */
+const MO=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+(()=>{ const d=new Date(); document.getElementById('curMonth').textContent='⬤ '+MO[d.getMonth()]+' '+d.getFullYear(); })();
+
+/* ═══════════ TOAST ═══════════ */
+let _tt;
+function toast(msg,ok=true){
+  const el=document.getElementById('toast');
+  el.className='toast '+(ok?'ok':'err');
+  document.getElementById('toastMsg').textContent=msg;
+  el.classList.add('show');
+  clearTimeout(_tt);
+  _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+/* ═══════════ LOGIN ═══════════ */
+async function doLogin(){
+  const u=document.getElementById('lUser').value.trim();
+  const p=document.getElementById('lPass').value.trim();
+  if(!u||!p){showLoginErr('Isi username dan password terlebih dahulu.');return;}
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true; btn.textContent='Memverifikasi…';
+  document.getElementById('loginErr').classList.remove('show');
+  try{
+    const res=await fetch(`${API}?action=login`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Custom-Auth':'admin','X-Role':'admin'},
+      body:JSON.stringify({username:u,password:p})
+    });
+    const json=await res.json();
+    if(json.success){
+      currentUser=u;
+      document.getElementById('userPill').innerHTML='👤 <strong>'+escHtml(u)+'</strong>';
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('appScreen').style.display='block';
+      loadData();
+    } else {
+      showLoginErr('Username atau password salah.');
+    }
+  } catch(e){
+    showLoginErr('Gagal terhubung ke server. ('+e.message+')');
+  } finally {
+    btn.disabled=false; btn.textContent='Masuk';
+  }
+}
+function showLoginErr(msg){
+  const el=document.getElementById('loginErr');
+  el.textContent=msg; el.classList.add('show');
+}
+function doLogout(){
+  if(!confirm('Yakin ingin keluar?')) return;
+  currentUser='';
+  records=[];filtered=[];
+  document.getElementById('lUser').value='';
+  document.getElementById('lPass').value='';
+  document.getElementById('loginErr').classList.remove('show');
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+document.getElementById('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+/* ═══════════ HELPERS ═══════════ */
+function pColor(pct){ if(pct>=100)return'#ef4444'; if(pct>=80)return'#f97316'; if(pct>=60)return'#f59e0b'; return'#22c55e'; }
+function getBadge(u){ const p=(u/MAX_MAU)*100; if(u>=MAX_MAU)return'<span class="badge badge-penuh">Penuh</span>'; if(p>=80)return'<span class="badge badge-kritis">Kritis</span>'; if(p>=60)return'<span class="badge badge-warn">Hampir Habis</span>'; return'<span class="badge badge-aman">Aman</span>'; }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* Tooltip cell: teks di-ellipsis, hover muncul lengkap */
+function ellCell(txt, cls=''){
+  const safe=escHtml(txt||'—');
+  return `<div class="ell-wrap"><span class="ell ${cls}">${safe}</span><div class="tooltip">${safe}</div></div>`;
+}
+
+/* ═══════════ SUMMARY ═══════════ */
+function updateSummary(){
+  const total=records.length;
+  const used=records.reduce((s,r)=>s+(parseInt(r.x_04)||0),0);
+  const left=total*MAX_MAU-used;
+  const warn=records.filter(r=>{ const p=(parseInt(r.x_04)||0)/MAX_MAU; return p>=.6&&p<1; }).length;
+  const full=records.filter(r=>(parseInt(r.x_04)||0)>=MAX_MAU).length;
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sUsed').textContent=used;
+  document.getElementById('sLeft').textContent=left;
+  document.getElementById('sWarn').textContent=warn;
+  document.getElementById('sFull').textContent=full;
+  document.getElementById('sMax').textContent=total*MAX_MAU;
+}
+
+/* ═══════════ RENDER TABLE ═══════════ */
+function renderTable(){
+  const tb=document.getElementById('tableBody');
+  document.getElementById('tableCount').textContent=filtered.length+' akun';
+  if(!filtered.length){
+    tb.innerHTML=`<tr class="loading-row"><td colspan="9"><div class="empty-state"><div style="font-size:32px">📋</div><div style="font-weight:600;color:var(--text);margin-top:8px">Belum ada data</div><p>Klik "+ Tambah Akun" untuk mendaftarkan akun JaaS pertama.</p></div></td></tr>`;
+    updateSummary(); return;
+  }
+  tb.innerHTML=filtered.map((r,i)=>{
+    const used=parseInt(r.x_04)||0;
+    const left=Math.max(0,MAX_MAU-used);
+    const pct=Math.min(100,Math.round((used/MAX_MAU)*100));
+    const col=pColor(pct);
+    /* App ID: tampilkan tanpa prefix vpaas-magic-cookie- agar lebih pendek */
+    const appDisplay=(r.x_03||'').replace('vpaas-magic-cookie-','…');
+    return `<tr data-id="${r.id_x}">
+      <td class="cell-mono">${i+1}</td>
+      <td>${ellCell(r.x_01,'cell-name')}</td>
+      <td>${ellCell(r.x_02,'cell-email-txt')}</td>
+      <td>${ellCell(appDisplay,'cell-appid-txt')}</td>
+      <td style="text-align:center">
+        <div class="mau-wrap" style="justify-content:center">
+          <input class="mau-num" type="number" min="0" max="25" value="${used}"
+            onchange="quickUpdate(${r.id_x},this.value)" title="Ketik angka lalu tekan Enter">
+          <div class="mau-mini-btns">
+            <button class="mau-step" onclick="stepMau(${r.id_x},1)" title="+1">▲</button>
+            <button class="mau-step" onclick="stepMau(${r.id_x},-1)" title="-1">▼</button>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px;color:${left===0?'#f87171':left<=5?'#fbbf24':'#4ade80'}">${left}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div class="progress-pct">${pct}%</div>
+        </div>
+      </td>
+      <td>${getBadge(used)}</td>
+      <td>
+        <div class="action-wrap">
+          <button class="icon-btn edit" onclick="openEdit(${r.id_x})" title="Edit" aria-label="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteRecord(${r.id_x})" title="Hapus" aria-label="Hapus">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  updateSummary();
+}
+
+/* ═══════════ SEARCH ═══════════ */
+function filterTable(){
+  const q=document.getElementById('searchBox').value.trim().toLowerCase();
+  filtered=q?records.filter(r=>(r.x_01||'').toLowerCase().includes(q)||(r.x_02||'').toLowerCase().includes(q)||(r.x_03||'').toLowerCase().includes(q)):[...records];
+  renderTable();
+}
+
+/* ═══════════ LOAD DATA ═══════════ */
+async function loadData(){
+  document.getElementById('tableBody').innerHTML='<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Memuat data...</td></tr>';
+  try{
+    const res=await fetch(`${API}?table=${TABLE}&limit=200`,{headers:H()});
+    const json=await res.json();
+    if(json.success){
+      records=(json.data||[]).sort((a,b)=>(a.x_01||'').localeCompare(b.x_01||''));
+      filtered=[...records]; renderTable();
+    } else {
+      document.getElementById('tableBody').innerHTML=`<tr class="loading-row"><td colspan="9" style="color:#f87171">⚠ API error: ${escHtml(json.error||'')}</td></tr>`;
+    }
+  } catch(e){
+    document.getElementById('tableBody').innerHTML=`<tr class="loading-row"><td colspan="9" style="color:#f87171">⚠ Gagal terhubung: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+/* ═══════════ QUICK UPDATE ═══════════ */
+async function quickUpdate(id,val){
+  const used=Math.max(0,Math.min(MAX_MAU,parseInt(val)||0));
+  try{
+    const res=await fetch(`${API}?table=${TABLE}&id_x=${id}`,{method:'PUT',headers:H(),body:JSON.stringify({x_04:String(used)})});
+    const json=await res.json();
+    if(json.success){ const r=records.find(x=>x.id_x===id); if(r)r.x_04=String(used); filtered=records.filter(r=>filtered.some(f=>f.id_x===r.id_x)); renderTable(); toast('MAU diperbarui ✓'); }
+    else toast('Gagal simpan MAU',false);
+  } catch(e){ toast('Error: '+e.message,false); }
+}
+function stepMau(id,delta){
+  const row=document.querySelector(`tr[data-id="${id}"]`);
+  const inp=row?row.querySelector('.mau-num'):null;
+  if(!inp)return;
+  const nv=Math.max(0,Math.min(MAX_MAU,(parseInt(inp.value)||0)+delta));
+  inp.value=nv; quickUpdate(id,nv);
+}
+
+/* ═══════════ DELETE ═══════════ */
+async function deleteRecord(id){
+  const r=records.find(x=>x.id_x===id);
+  const name=r?(r.x_01||'akun ini'):'akun ini';
+  if(!confirm(`Hapus "${name}"? Tidak dapat dibatalkan.`)) return;
+  try{
+    const res=await fetch(`${API}?table=${TABLE}&id_x=${id}`,{method:'DELETE',headers:H()});
+    const json=await res.json();
+    if(json.success){ records=records.filter(x=>x.id_x!==id); filtered=filtered.filter(x=>x.id_x!==id); renderTable(); toast(`"${name}" dihapus.`); }
+    else toast('Gagal hapus: '+(json.message||''),false);
+  } catch(e){ toast('Error: '+e.message,false); }
+}
+
+/* ═══════════ FORM MODAL ═══════════ */
+function openAdd(){
+  document.getElementById('fId').value='';
+  document.getElementById('fNama').value='';
+  document.getElementById('fEmail').value='';
+  document.getElementById('fAppId').value='';
+  setSlider(0);
+  document.getElementById('formTitle').textContent='Tambah Akun JaaS';
+  document.getElementById('formModal').classList.add('open');
+  setTimeout(()=>document.getElementById('fNama').focus(),100);
+}
+function openEdit(id){
+  const r=records.find(x=>x.id_x===id); if(!r)return;
+  document.getElementById('fId').value=r.id_x;
+  document.getElementById('fNama').value=r.x_01||'';
+  document.getElementById('fEmail').value=r.x_02||'';
+  document.getElementById('fAppId').value=r.x_03||'';
+  setSlider(parseInt(r.x_04)||0);
+  document.getElementById('formTitle').textContent='Edit Akun JaaS';
+  document.getElementById('formModal').classList.add('open');
+  setTimeout(()=>document.getElementById('fNama').focus(),100);
+}
+function closeForm(){ document.getElementById('formModal').classList.remove('open'); }
+function setSlider(v){ document.getElementById('fSlider').value=v; document.getElementById('fSliderVal').textContent=v; document.getElementById('fMau').value=v; }
+function syncSlider(){ const v=document.getElementById('fSlider').value; document.getElementById('fSliderVal').textContent=v; document.getElementById('fMau').value=v; }
+function syncNumber(){ let v=Math.max(0,Math.min(MAX_MAU,parseInt(document.getElementById('fMau').value)||0)); document.getElementById('fSlider').value=v; document.getElementById('fSliderVal').textContent=v; }
+
+async function saveRecord(){
+  const id=document.getElementById('fId').value;
+  const nama=document.getElementById('fNama').value.trim();
+  const email=document.getElementById('fEmail').value.trim();
+  const appid=document.getElementById('fAppId').value.trim();
+  const mau=Math.max(0,Math.min(MAX_MAU,parseInt(document.getElementById('fMau').value)||0));
+  if(!nama){ toast('Nama akun wajib diisi',false); document.getElementById('fNama').focus(); return; }
+  if(!email){ toast('Email wajib diisi',false); document.getElementById('fEmail').focus(); return; }
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true; btn.textContent='Menyimpan…';
+  const body={x_01:nama,x_02:email,x_03:appid,x_04:String(mau)};
+  try{
+    const res=id
+      ? await fetch(`${API}?table=${TABLE}&id_x=${id}`,{method:'PUT',headers:H(),body:JSON.stringify(body)})
+      : await fetch(`${API}?table=${TABLE}`,{method:'POST',headers:H(),body:JSON.stringify(body)});
+    const json=await res.json();
+    if(json.success){ closeForm(); toast(id?`"${nama}" diperbarui ✓`:`"${nama}" ditambahkan ✓`); await loadData(); }
+    else toast('Gagal simpan: '+(json.message||''),false);
+  } catch(e){ toast('Error: '+e.message,false); }
+  finally{ btn.disabled=false; btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Simpan'; }
+}
+
+/* ═══════════ RESET MODAL ═══════════ */
+function openReset(){ document.getElementById('resetModal').classList.add('open'); }
+function closeReset(){ document.getElementById('resetModal').classList.remove('open'); }
+async function doReset(){
+  const btn=document.getElementById('resetBtn');
+  btn.disabled=true; btn.textContent='Mereset…';
+  let ok=0,fail=0;
+  for(const r of records){
+    try{
+      const res=await fetch(`${API}?table=${TABLE}&id_x=${r.id_x}`,{method:'PUT',headers:H(),body:JSON.stringify({x_04:'0'})});
+      const json=await res.json();
+      if(json.success){r.x_04='0';ok++;}else fail++;
+    } catch{fail++;}
+  }
+  closeReset(); filtered=[...records]; renderTable();
+  if(fail===0) toast(`Reset selesai — ${ok} akun direset ke 0 ✓`);
+  else toast(`Reset sebagian: ${ok} berhasil, ${fail} gagal ⚠`,false);
+  btn.disabled=false;
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Ya, Reset Sekarang';
+}
+
+/* ═══════════ CLOSE ON OVERLAY ═══════════ */
+document.getElementById('formModal').addEventListener('click',function(e){if(e.target===this)closeForm();});
+document.getElementById('resetModal').addEventListener('click',function(e){if(e.target===this)closeReset();});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeForm();closeReset();} });
+</script>
+</body>
+</html>
