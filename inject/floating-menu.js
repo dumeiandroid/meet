@@ -5,7 +5,8 @@
   //  KONFIGURASI MENU — tambah/kurang di sini
   // =============================================
   const menuItems = [
-    { label: 'Psikotest JSON New', url: 'https://admin.lidan.co.id/admin/psikotest_json_new', icon: '🧠' },
+    { label: 'Psikotest', url: 'https://admin.lidan.co.id/admin/psikotest_json_new', icon: '🧠' },
+    { label: 'MAU', url: 'https://meet.lidan.co.id/file/mau', icon: '🧠' },
     // Tambahkan menu di bawah ini:
     // { label: 'Nama Menu', url: 'https://...', icon: '📋' },
     // { label: 'Dashboard', url: 'https://example.com/dashboard', icon: '📊' },
